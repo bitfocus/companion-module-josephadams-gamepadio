@@ -1,0 +1,177 @@
+{
+	"name": "XBox 360 Controller",
+	"description": "Standard XBox 360 Controller Mapping.",
+	"buttons": [
+		{
+			"buttonIndex": 0,
+			"buttonId": "a",
+			"buttonName": "A",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 1,
+			"buttonId": "b",
+			"buttonName": "B",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 2,
+			"buttonId": "x",
+			"buttonName": "X",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 3,
+			"buttonId": "y",
+			"buttonName": "Y",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 4,
+			"buttonId": "lb",
+			"buttonName": "Left Button",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 5,
+			"buttonId": "rb",
+			"buttonName": "Right Button",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 6,
+			"buttonId": "lt",
+			"buttonName": "Left Trigger",
+			"hapticType": "trigger-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 7,
+			"buttonId": "rt",
+			"buttonName": "Right Trigger",
+			"hapticType": "trigger-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 8,
+			"buttonId": "select",
+			"buttonName": "Select"
+		},
+		{
+			"buttonIndex": 9,
+			"buttonId": "start",
+			"buttonName": "Start"
+		},
+		{
+			"buttonIndex": 10,
+			"buttonId": "ls",
+			"buttonName": "Left Stick"
+		},
+		{
+			"buttonIndex": 11,
+			"buttonId": "rs",
+			"buttonName": "Right Stick"
+		},
+		{
+			"buttonIndex": 12,
+			"buttonId": "up",
+			"buttonName": "Up"
+		},
+		{
+			"buttonIndex": 13,
+			"buttonId": "down",
+			"buttonName": "Down"
+		},
+		{
+			"buttonIndex": 14,
+			"buttonId": "left",
+			"buttonName": "Left"
+		},
+		{
+			"buttonIndex": 15,
+			"buttonId": "right",
+			"buttonName": "Right"
+		},
+		{
+			"buttonIndex": 16,
+			"buttonId": "xbox",
+			"buttonName": "XBox Button"
+		}
+	],
+	"axes": [
+		{
+			"axisIndex": 0,
+			"axisId": "lsx",
+			"axisName": "Left Stick X",
+			"axisType": "x",
+			"axisInverted": false
+		},
+		{
+			"axisIndex": 1,
+			"axisId": "lsy",
+			"axisName": "Left Stick Y",
+			"axisType": "y",
+			"axisInverted": false
+		},
+		{
+			"axisIndex": 2,
+			"axisId": "rsx",
+			"axisName": "Right Stick X",
+			"axisType": "x",
+			"axisInverted": false
+		},
+		{
+			"axisIndex": 3,
+			"axisId": "rsy",
+			"axisName": "Right Stick Y",
+			"axisType": "y",
+			"axisInverted": false
+		}
+	]
+}

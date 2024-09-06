@@ -1,0 +1,778 @@
+const { InstanceStatus } = require('@companion-module/base')
+
+const io = require('socket.io-client')
+
+module.exports = {
+	initConnection: function () {
+		let self = this
+
+		//close any satellite connections
+		self.CompanionSatellite_Close()
+		self.CONTROLLER_SURFACE_UUID = undefined
+
+		if (self.config.host) {
+			self.config.port = 8809
+			self.log('info', `Opening connection to gamepad-io: ${self.config.host}:${self.config.port}`)
+			self.updateStatus(InstanceStatus.Connecting)
+			self.socket = io.connect('http://' + self.config.host + ':' + self.config.port, { reconnection: true })
+			self.log('info', 'Connecting to gamepad-io...')
+			self.STATUS.information = 'Connecting to gamepad-io'
+			self.checkVariables()
+
+			// Add listeners
+			self.socket.on('connect', function () {
+				self.log('info', 'Connected to gamepad-io. Retrieving data.')
+				self.updateStatus(InstanceStatus.Connecting, 'Connected, Waiting for Controller Data...')
+				self.CONNECTED = true
+				self.getConfigFields()
+				self.STATUS.information = 'Connected'
+				self.sendCommand('version', null, null)
+				self.sendCommand('controllers')
+				self.checkFeedbacks()
+				self.checkVariables()
+			})
+
+			self.socket.on('disconnect', function () {
+				self.updateStatus(InstanceStatus.Disconnected)
+				self.log('error', 'Disconnected from gamepad-io.')
+				self.CONNECTED = false
+				self.STATUS.information = 'Disconnected'
+				self.STATUS.controllers = []
+
+				self.resetValues()
+
+				self.getConfigFields()
+
+				//disconnect satellites
+				self.CompanionSatellite_Close()
+				self.CONTROLLER_SURFACE_UUID = undefined
+
+				self.initVariables() //reload variables to remove controller, button, axis data etc.
+
+				self.checkFeedbacks()
+				self.checkVariables()
+
+				//wait 5 seconds and try again to connect
+				self.log('info', 'Attempting to reconnect in 5 seconds...')
+
+				self.RECONNECT_INTERVAL = setTimeout(function () {
+					self.init(self.config)
+				}, 5000)
+			})
+
+			self.socket.on('version', function (version) {
+				self.STATUS.version = version
+				let variableObj = {}
+				variableObj['version'] = version
+				self.setVariableValues(variableObj)
+			})
+
+			self.socket.on('controllers', function (controllers) {
+				self.processControllers(controllers)
+			})
+
+			self.socket.on('button_event', function (uuid, buttonIndex, pressed, touched, val, pct) {
+				self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct);
+			})
+
+			self.socket.on('axis_event', function (uuid, idx, pressed, axis) {
+				self.processAxisEvent(uuid, idx, pressed, axis);
+			})
+
+			self.socket.on('error', function (error) {
+				self.updateStatus(InstanceStatus.Disconnected)
+				self.log('error', 'Error from gamepad-io: ' + error)
+
+				//close any satellite connections
+				self.CompanionSatellite_Close()
+				self.CONTROLLER_SURFACE_UUID = undefined
+
+				self.checkFeedbacks()
+				self.checkVariables()
+
+				//wait 5 seconds and try again to connect
+				self.log('info', 'Attempting to reconnect in 5 seconds...')
+				self.RECONNECT_INTERVAL = setTimeout(function () {
+					self.initConnection()
+				}, 5000)
+			})
+		}
+	},
+
+	processControllers: function (controllers) {
+		let self = this
+
+		try {
+			//compare the uuid's in the controllers array to the uuid's in the STATUS.controllers array and see if it is different - any new, any gone
+			let changed = false
+
+			if (controllers.length !== self.STATUS.controllers.length) {
+				changed = true
+			} else {
+				for (let i = 0; i < controllers.length; i++) {
+					let controller = controllers[i]
+					let foundController = self.STATUS.controllers.find((obj) => obj.uuid === controller.uuid)
+					if (foundController === undefined) {
+						changed = true
+						break
+					}
+				}
+
+				if (changed === false) {
+					for (let i = 0; i < self.STATUS.controllers.length; i++) {
+						let controller = self.STATUS.controllers[i]
+						let foundController = controllers.find((obj) => obj.uuid === controller.uuid)
+						if (foundController === undefined) {
+							changed = true
+							break
+						}
+					}
+				}
+			}
+
+			if (changed) {
+				//only re-init if the array of controllers has changed
+				if (self.config.verbose) {
+					self.log('debug', 'Controllers changed. Re-running controller choice logic.')
+				}
+
+				self.STATUS.controllers = controllers //assign it now that we have checked for changes
+
+				self.rebuildChoices()
+				self.getConfigFields()
+
+				self.initActions()
+				self.initFeedbacks()
+				self.initVariables()
+				self.initPresets()
+			} else {
+				self.log('debug', 'No change in controllers detected.')
+				return
+			}
+
+			//continue on because I didn't feel like moving this up
+
+			//if length is 0, then we are not connected to a controller and the user may need to press a button on a gamepad first
+			if (controllers.length === 0) {
+				self.updateStatus(
+					InstanceStatus.Connecting,
+					'No controllers detected. Press a button on a gamepad to detect all connected gamepads.'
+				)
+			} else {
+				//get the previously configured controller
+				let selectedController = self.config.controller
+
+				//see if the selected controller is in the list of controllers
+				let foundController = controllers.find((controller) => controller.uuid === selectedController)
+
+				if (selectedController === undefined) {
+					//no controller selected, warn them
+					self.log('warn', 'No controller selected. Please select a controller in the configuration.')
+					self.updateStatus(
+						InstanceStatus.Connecting,
+						'No controller selected. Please select a controller in the configuration.'
+					)
+					self.loadSurfaceSettings() //go ahead and load defaults in case they want to use the surface area
+				} else if (foundController === undefined) {
+					//controller not found, warn them
+					self.log(
+						'warn',
+						'Previously selected controller not found. Please select a new controller in the configuration.'
+					)
+					self.updateStatus(
+						InstanceStatus.Connecting,
+						'Previously selected controller not found. Please select a controller in the configuration.'
+					)
+				} else {
+					//controller found, set it as the selected controller
+					self.log('info', 'Controller detected: ' + foundController.id)
+
+					//before setting the controller, we may need to leave the room of the previous controller
+					if (self.CONTROLLER !== undefined) {
+						if (self.CONTROLLER?.uuid !== foundController.uuid) {
+							if (self.config.verbose) {
+								self.log('debug', 'Leaving room for previous controller: ' + self.CONTROLLER.uuid)
+							}
+
+							self.socket.emit('leave_room', self.CONTROLLER.uuid)
+						}
+					}
+
+					self.CONTROLLER = foundController
+					self.CONTROLLER.name = self.CONTROLLER.id.split('(')[0].trim() //set the friendly name
+					self.updateStatus(InstanceStatus.Ok)
+
+					//join the socket io room for this controller
+					if (self.config.verbose) {
+						self.log('debug', 'Subscribing to gamepad events for: ' + self.CONTROLLER.uuid)
+					}
+
+					self.socket.emit('join_room', self.CONTROLLER.uuid)
+
+					//check the button mapping, if they did not choose one, just select generic
+					if (self.config.buttonMapping === undefined) {
+						//set the default button mapping and log it
+						self.log('info', 'No button mapping selected. Defaulting to Generic.')
+						self.config.buttonMapping = 'generic'
+						self.saveConfig(self.config)
+					}
+
+					//now load the button mapping based on their selection
+					self.loadButtonMapping()
+					self.rebuildChoices()
+
+					//re-init the actions, feedbacks, variables, and presets
+					self.initActions()
+					self.initFeedbacks()
+					self.initVariables()
+					self.initPresets()
+
+					//if we are using this as a surface, we need to create the satellite
+					if (self.config.useAsSurface) {
+						self.loadSurfaceSettings()
+						if (self.config.verbose) {
+							self.log('debug', 'Using as Surface. Opening connection to Companion Satellite API.')
+						}
+
+						if (self.CONTROLLER_SURFACE_UUID !== self.CONTROLLER.uuid) {
+							//close the previous connection
+							if (self.config.verbose) {
+								self.log('debug', 'Controller Surface UUID has changed. Restarting Satellite Connection.')
+							}
+							self.initSurface()
+						} else {
+							if (self.config.verbose) {
+								self.log('debug', 'Controller Surface UUID has not changed. Not restarting Satellite Connection.')
+							}
+						}
+						self.CONTROLLER_SURFACE_UUID = self.CONTROLLER.uuid
+					}
+				}
+			}
+
+			self.checkFeedbacks()
+			self.checkVariables()
+		}
+		catch (e) {
+			self.log('error', e)
+		}
+	},
+
+	processButtonEvent: function (uuid, buttonIndex, pressed, touched, val, pct) {
+		let self = this;
+
+		try {
+			if (self.CONTROLLER) {
+				//update the button data, but only if it is for the controller we are tracking
+				if (self.CONTROLLER.uuid === uuid && self.LOCKED == false) {
+					self.CONTROLLER.buttons[buttonIndex].pressed = pressed
+					self.CONTROLLER.buttons[buttonIndex].touched = touched
+					self.CONTROLLER.buttons[buttonIndex].val = val
+					self.CONTROLLER.buttons[buttonIndex].pct = pct
+
+					//we only want to press the button if it's pressed and percent is 100
+					//and if the last button pressed is not the same as this one, or if our debounce timer has expired
+
+					//if the button is inverted, then we need to invert the value
+					if (self.MAPPING) {
+						let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === buttonIndex)
+						if (buttonObj?.buttonInverted) {
+							pct = 100 - pct
+							val = 1 - val
+						}
+					}
+
+					//the key number is the button index
+					let keyNumber = buttonIndex
+
+					if (parseInt(pct) >= self.config.buttonPressThreshold) {
+						if (self.LAST_BUTTON_PRESSED !== buttonIndex || self.LAST_BUTTON_PRESSED === -1) {
+							self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=true`)
+
+							//keep track of the last button that was pressed, for debounce purposes
+							self.LAST_BUTTON_PRESSED = buttonIndex
+
+							//send haptic, if enabled
+							if (self.config.hapticWhenPressed == true) {
+								self.sendHapticFeedback(uuid, 'button', buttonIndex)
+							}
+
+							//start a lil timer for debounce purposes
+							if (self.DEBOUNCE_TIMER !== undefined) {
+								clearTimeout(self.DEBOUNCE_TIMER)
+							}
+
+							self.DEBOUNCE_TIMER = setTimeout(function () {
+								self.LAST_BUTTON_PRESSED = -1
+								self.DEBOUNCE_TIMER = undefined
+							}, self.config.buttonDebounce)
+						} else {
+							if (self.config.verbose) {
+								self.log(
+									'debug',
+									`Button ${buttonIndex} pressed, but debounce timer (${self.config.buttonDebounce}ms) is active.`
+								)
+							}
+						}
+					} else if (parseInt(pct) <= self.config.buttonReleaseThreshold) {
+						self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=false`)
+					}
+
+					//now set the variable
+					let buttonId = buttonIndex //generic
+
+					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonIndex)
+
+					if (buttonObj) {
+						buttonId = buttonObj.buttonId
+					}
+
+					let variableObj = {}
+					variableObj[`button_${buttonId}_pressed`] = pressed
+					variableObj[`button_${buttonId}_touched`] = touched
+					variableObj[`button_${buttonId}_val`] = val
+					variableObj[`button_${buttonId}_pct`] = pct
+					self.setVariableValues(variableObj)
+				}
+
+				self.checkFeedbacks()
+				//really only want to call checkVariables when it's a larger dataset to process, as this can get costly over time
+				//self.checkVariables();
+			}
+		}
+		catch (e) {
+			self.log('error', e)
+		}
+	},
+
+	processAxisEvent: function (uuid, idx, pressed, axis) {
+		let self = this
+
+		try {
+			if (self.CONTROLLER) {
+				//update the axis data, but only if it is for the controller we are tracking
+				if (self.CONTROLLER.uuid === uuid && self.LOCKED == false) {
+					self.CONTROLLER.axes[idx].pressed = pressed
+					self.CONTROLLER.axes[idx].axis = axis
+
+					let axisObj = undefined
+
+					if (self.MAPPING) {
+						axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
+					}
+
+					//the key number is the axis index + the number of buttons (offset)
+					//if the axis is negative, it's one key, if it's positive, it's the other key
+
+					let negSensitivity = 0.1 //default
+					let posSensitivity = 0.1 //default
+
+					//get the deadzones from the button mapping
+					if (axisObj) {
+						negSensitivity = axisObj.axisNegDeadzone
+						posSensitivity = axisObj.axisPosDeadzone
+					}
+
+					//if the event entirely falls within the deadzone, just assume it to be 0
+					if (axis > negSensitivity && axis < posSensitivity) {
+						axis = 0
+					}
+
+					let axisValue = axis //
+
+					let axisRangeMin = -1
+					let axisRangeMax = 1
+
+					//if we are inverting the axis, then we need to invert the value
+					if (axisObj) {
+						if (axisObj?.axisInverted) {
+							axisValue = axisValue * -1
+						}
+
+						//get the axis range values, and remap the real axis value to the range value, because that's what we will use in the variable we display
+						axisRangeMin = axisObj.axisRangeMin
+						axisRangeMax = axisObj.axisRangeMax
+					}
+
+					//calculate the percent, the axis is a float from -1.0 to 1.0 and the percent can be -100% to 100%
+					axisPct = Math.round(axisValue * 100)
+
+					let axisRange = (axisRangeMax - axisRangeMin) / 2 //we are going to use the full range, so divide by 2
+
+					//now we need to remap the axis value to the range value
+					let axisDisplayValue = Math.round(axisValue * axisRange) // + axisRangeMin;
+
+					//now check the direction
+					let axisDirection = 'center'
+
+					if (axisValue < 0) {
+						//get the axis type from the button mapping definition and if it is X, use "left, it is Y, use "up"
+						if (self.MAPPING) {
+							let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
+							if (axisObj?.axisType) {
+								axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'left' : 'up'
+							}
+						} else {
+							axisDirection = 'negative'
+						}
+					} else if (axisValue > 0) {
+						//get the axis type from the button mapping definition and if it is X, use "right, it is Y, use "down"
+						if (self.MAPPING) {
+							let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
+							axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'right' : 'down'
+						} else {
+							axisDirection = 'positive'
+						}
+					}
+
+					self.CONTROLLER.axes[idx].direction = axisDirection
+
+					//now set the variable
+					let axisId = idx //generic or otherwise unknown
+
+					if (axisObj) {
+						axisId = axisObj.axisId
+					}
+
+					let variableObj = {}
+					variableObj[`axis_${axisId}_pressed`] = pressed
+					variableObj[`axis_${axisId}_val`] = axisValue
+					variableObj[`axis_${axisId}_val_display`] = axisDisplayValue
+					variableObj[`axis_${axisId}_pct`] = axisPct + '%'
+					variableObj[`axis_${axisId}_direction`] = axisDirection
+					self.setVariableValues(variableObj)
+
+					//now send the satellite command, if enabled
+					if (self.config.axisMovementAsButtonPress) {
+						//each axis will have two keys, one for negative and one for positive
+						let keyNumberNeg = self.CONTROLLER.buttons.length + idx * 2 //offset the key number by the number of buttons on the controller
+						let keyNumberPos = self.CONTROLLER.buttons.length + 1 + idx * 2 //offset the key number by the number of buttons on the controller
+
+						let axisMovementPressThreshold = Number(self.config.axisMovementPressThreshold)
+
+						let axisPctAbs = Math.abs(axisPct)
+						let percentAllowed = 100 - axisMovementPressThreshold
+
+						//if the percent is less than the threshold, we release; if greater than, we press
+						if (axisPctAbs < percentAllowed) {
+							//trigger a release depending on if it's positive or negative
+							if (axisPct < 0) {
+								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberNeg} PRESSED=false`)
+							} else if (axisPct > 0) {
+								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberPos} PRESSED=false`)
+							}
+						} else {
+							if (axisPct < 0) {
+								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberNeg} PRESSED=true`)
+								//send haptic, if enabled
+								if (self.config.hapticWhenPressed == true) {
+									self.sendHapticFeedback(uuid, 'axis', keyNumberNeg)
+								}
+							} else if (axisPct > 0) {
+								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberPos} PRESSED=true`)
+								//send haptic, if enabled
+								if (self.config.hapticWhenPressed == true) {
+									self.sendHapticFeedback(uuid, 'axis', keyNumberPos)
+								}
+							}
+						}
+					}
+				}
+
+				self.checkFeedbacks()
+			}
+		}
+		catch (e) {
+			self.log('error', e)
+		}
+	},
+
+	rebuildChoices: function () {
+		let self = this
+
+		if (self.STATUS.controllers.length > 0) {
+			self.CHOICES_CONTROLLERS = []
+
+			//push the undefined option first
+			self.CHOICES_CONTROLLERS.push({ id: undefined, label: '(select a controller)' })
+
+			for (let i = 0; i < self.STATUS.controllers.length; i++) {
+				let controller = self.STATUS.controllers[i]
+				let controllerName = controller.id.split('(')[0].trim()
+				controllerName = `${controllerName} (Buttons: ${controller.buttons.length}, Axes: ${controller.axes.length})`
+				if (controller.inUse == true) {
+					controllerName = 'IN USE: ' + controllerName
+				}
+				self.CHOICES_CONTROLLERS.push({ id: controller.uuid, label: controllerName })
+			}
+		} else {
+			self.CHOICES_CONTROLLERS = [{ id: undefined, label: '(no controllers detected)' }]
+		}
+
+		if (self.CONTROLLER) {
+			if (self.CONTROLLER.buttons.length > 0) {
+				self.CHOICES_BUTTONS = []
+
+				for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
+					if (self.MAPPING) {
+						let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === i)
+						self.CHOICES_BUTTONS.push({ id: i, label: buttonObj.buttonName })
+					} else {
+						self.CHOICES_BUTTONS.push({ id: i, label: 'Button ' + i })
+					}
+				}
+			} else {
+				self.CHOICES_BUTTONS = [{ id: '0', label: 'aint got no buttons' }]
+			}
+
+			if (self.CONTROLLER.axes.length > 0) {
+				self.CHOICES_AXES = []
+
+				for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
+					if (self.MAPPING) {
+						let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === i)
+						self.CHOICES_AXES.push({ id: i.toString(), label: axisObj.axisName })
+					} else {
+						self.CHOICES_AXES.push({ id: i.toString(), label: 'Axis ' + i })
+					}
+				}
+			} else {
+				self.CHOICES_AXES = [{ id: '0', label: 'Axis 1' }]
+			}
+		}
+	},
+
+	loadButtonMapping: function () {
+		let self = this
+
+		//load the button mapping based on their selection
+		if (self.config.buttonMapping == 'generic') {
+			//no need to do anything
+			self.log('info', 'Loading Generic Button Mapping.')
+			self.MAPPING = undefined
+			return
+		} else if (self.config.buttonMapping == 'custom') {
+			//load the mapping from the stored config
+			self.log('info', 'Loading Custom Button Mapping.')
+			self.MAPPING = self.config.MAPPING
+			return
+		}
+
+		self.log('info', `Loading Button Mapping: ${self.config.buttonMapping}`)
+
+		if (self.config.buttonMapping === 'custom-file') {
+			this.loadCustomMapping(this.config.customFile)
+			return;
+		}
+
+		try {
+			self.MAPPING = require(`./mappings/${self.config.buttonMapping}.json`)
+		} catch (err) {
+			self.log('error', `Error loading button mapping: ${err}`)
+			self.MAPPING = undefined
+			self.config.buttonMapping = 'generic'
+		}
+                  
+		//now save it to the config so it is stored for next time
+		self.config.MAPPING = self.MAPPING
+		self.saveConfig(self.config)
+	},
+
+	loadCustomMapping: function(path) {
+		let self = this
+
+		try {
+			self.MAPPING = require(path)
+			self.config.MAPPING = self.MAPPING
+			self.saveConfig(self.config)
+		} catch (err) {
+			self.log('error', `Error loading custom button mapping: ${err}`)
+			self.MAPPING = undefined
+			self.config.buttonMapping = 'generic'
+		}
+	},
+
+	saveCustomMapping: function(path) {
+		let self = this
+
+		try {
+			fs.writeFileSync(path, JSON.stringify(self.MAPPING, null, 2))
+		} catch (err) {
+			self.log('error', `Error saving custom button mapping: ${err}`)
+		}
+	},
+
+	loadSurfaceSettings: function () {
+		let self = this
+
+		//surface ip/port defaults
+		if (self.config.host_companion === undefined) {
+			self.config.host_companion = '127.0.0.1'
+		}
+
+		if (self.config.port_companion === undefined) {
+			self.config.port_companion = 16622
+		}
+
+		//set up the debounce, deadzones, etc.
+
+		//haptic settings
+		if (self.config.hapticWhenPressed === undefined) {
+			self.config.hapticWhenPressed = false
+		}
+
+		//press and release thresholds
+		if (self.config.buttonPressThreshold === undefined) {
+			self.config.buttonPressThreshold = 100
+		}
+		//ensure it is a number and is positive
+		self.config.buttonPressThreshold = Math.abs(Number(self.config.buttonPressThreshold))
+
+		if (self.config.buttonReleaseThreshold === undefined) {
+			self.config.buttonReleaseThreshold = 0
+		}
+
+		//ensure it is a number and is positive
+		self.config.buttonReleaseThreshold = Math.abs(Number(self.config.buttonReleaseThreshold))
+
+		//debounce
+		if (self.config.buttonDebounce === undefined) {
+			self.config.buttonDebounce = 50
+		}
+		//ensure it is a number and is positive
+		self.config.buttonDebounce = Math.abs(Number(self.config.buttonDebounce))
+
+		//display range
+		if (self.config.axisRangeMin === undefined) {
+			self.config.axisRangeMin = -3200
+		}
+		if (self.config.axisRangeMax === undefined) {
+			self.config.axisRangeMax = 3200
+		}
+
+		//ensure they are numbers and min is less than max
+		self.config.axisRangeMin = Number(self.config.axisRangeMin)
+		self.config.axisRangeMax = Number(self.config.axisRangeMax)
+
+		if (self.config.axisRangeMin > self.config.axisRangeMax) {
+			let temp = self.config.axisRangeMin
+			self.config.axisRangeMin = self.config.axisRangeMax
+			self.config.axisRangeMax = temp
+		}
+
+		//axis movement as button press
+		if (self.config.axisMovementAsButtonPress === undefined) {
+			self.config.axisMovementAsButtonPress = false
+		}
+
+		//axis movement threshold
+		if (self.config.axisMovementPressThreshold === undefined) {
+			self.config.axisMovementPressThreshold = 5
+		}
+
+		//ensure it is a number and is positive
+		self.config.axisMovementPressThreshold = Math.abs(Number(self.config.axisMovementPressThreshold))
+
+		if (self.config.disconnectBehavior === undefined) {
+			self.config.disconnectBehavior = 'reset'
+		}
+
+		//now save the config so these values are displayed in the UI next time
+		self.saveConfig(self.config)
+	},
+
+	sendHapticFeedback: function (uuid, buttonOrAxis, buttonIndex) {
+		let self = this
+
+		let type = 'none'
+		let params = undefined
+
+		let hapticObj = undefined
+
+		//look up the haptic feedback for this button in self.MAPPING
+		if (buttonOrAxis === 'button') {
+			hapticObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonIndex)
+		} else if (buttonOrAxis === 'axis') {
+			hapticObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === buttonIndex)
+		}
+
+		if (hapticObj) {
+			type = hapticObj.hapticType || 'none'
+			params = hapticObj.hapticParams
+		}
+
+		if (params === undefined) {
+			params = {
+				duration: 100,
+				startDelay: 0,
+				strongMagnitude: 1.0,
+				weakMagnitude: 0.5,
+			}
+
+			if (type === 'trigger-rumble') {
+				params.leftTrigger = 0.5
+				params.rightTrigger = 0.5
+			}
+		}
+
+		if (type !== 'none') {
+			if (self.config.hapticWhenPressed) {
+				if (self.config.verbose) {
+					self.log('info', `Sending Haptic Feedback: ${type} from Button ${buttonIndex}`)
+				}
+				self.socket.emit('haptic', self.CONTROLLER.uuid, type, params)
+			}
+		}
+	},
+
+	resetValues: function () {
+		let self = this
+
+		self.LAST_BUTTON_PRESSED = -1
+		clearInterval(self.DEBOUNCE_TIMER)
+		self.DEBOUNCE_TIMER = undefined
+
+		//reset all button values to 0, if the user chose that option in the config
+		if (self.config.disconnectBehavior == 'reset') {
+			if (self.CONTROLLER) {
+				for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
+					self.CONTROLLER.buttons[i].pressed = false
+					self.CONTROLLER.buttons[i].touched = false
+					self.CONTROLLER.buttons[i].val = 0
+					self.CONTROLLER.buttons[i].pct = 0
+				}
+
+				for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
+					self.CONTROLLER.axes[i].pressed = false
+					self.CONTROLLER.axes[i].axis = 0
+				}
+			}
+		}
+	},
+
+	sendCommand: function (cmd, arg1 = null, arg2 = null) {
+		let self = this
+
+		if (self.config.verbose) {
+			self.log('info', 'Sending: ' + cmd)
+		}
+
+		if (self.socket !== undefined) {
+			if (arg1 !== null) {
+				if (arg2 !== null) {
+					self.socket.emit(cmd, arg1, arg2)
+				} else {
+					self.socket.emit(cmd, arg1)
+				}
+			} else {
+				self.socket.emit(cmd)
+			}
+		} else {
+			debug('Unable to send: Not connected to gamepad-io.')
+
+			if (self.config.verbose) {
+				self.log('warn', 'Unable to send: Not connected to gamepad-io.')
+			}
+		}
+	},
+}

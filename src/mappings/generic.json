@@ -1,0 +1,4 @@
+{
+	"name": "Generic Controller",
+	"description": "For a generic controller, the buttons are unknown, so they will be labeled generically. Button 0 on the controller will be referred to as Button 0 in the module, etc."
+}

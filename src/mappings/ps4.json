@@ -1,0 +1,183 @@
+{
+	"name": "PS4 Controller",
+	"description": "Standard PS4 Controller Mapping.",
+	"buttons": [
+		{
+			"buttonIndex": 0,
+			"buttonId": "x",
+			"buttonName": "X",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 1,
+			"buttonId": "circle",
+			"buttonName": "X",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 2,
+			"buttonId": "square",
+			"buttonName": "Square",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 3,
+			"buttonId": "triangle",
+			"buttonName": "Triangle",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 4,
+			"buttonId": "l1",
+			"buttonName": "Left 1 - Button",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 5,
+			"buttonId": "r1",
+			"buttonName": "Right 1 - Button",
+			"hapticType": "dual-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 6,
+			"buttonId": "l2",
+			"buttonName": "Left 2 - Trigger",
+			"hapticType": "trigger-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 7,
+			"buttonId": "r2",
+			"buttonName": "Right 2 - Trigger",
+			"hapticType": "trigger-rumble",
+			"hapticParams": {
+				"duration": 0.1,
+				"startDelay": 0.0,
+				"strongMagnitude": 1.0,
+				"weakMagnitude": 0.5
+			}
+		},
+		{
+			"buttonIndex": 8,
+			"buttonId": "share",
+			"buttonName": "Share"
+		},
+		{
+			"buttonIndex": 9,
+			"buttonId": "options",
+			"buttonName": "Options"
+		},
+		{
+			"buttonIndex": 10,
+			"buttonId": "l3",
+			"buttonName": "Left 3 - Stick Button"
+		},
+		{
+			"buttonIndex": 11,
+			"buttonId": "r3",
+			"buttonName": "Right 3 - Stick Button"
+		},
+		{
+			"buttonIndex": 12,
+			"buttonId": "up",
+			"buttonName": "Up"
+		},
+		{
+			"buttonIndex": 13,
+			"buttonId": "down",
+			"buttonName": "Down"
+		},
+		{
+			"buttonIndex": 14,
+			"buttonId": "left",
+			"buttonName": "Left"
+		},
+		{
+			"buttonIndex": 15,
+			"buttonId": "right",
+			"buttonName": "Right"
+		},
+		{
+			"buttonIndex": 16,
+			"buttonId": "ps",
+			"buttonName": "PS Button"
+		},
+		{
+			"buttonIndex": 17,
+			"buttonId": "touchpad",
+			"buttonName": "Touchpad"
+		}
+
+	],
+	"axes": [
+		{
+			"axisIndex": 0,
+			"axisId": "lsx",
+			"axisName": "Left Stick X",
+			"axisType": "x",
+			"axisInverted": false
+		},
+		{
+			"axisIndex": 1,
+			"axisId": "lsy",
+			"axisName": "Left Stick Y",
+			"axisType": "y",
+			"axisInverted": false
+		},
+		{
+			"axisIndex": 2,
+			"axisId": "rsx",
+			"axisName": "Right Stick X",
+			"axisType": "x",
+			"axisInverted": false
+		},
+		{
+			"axisIndex": 3,
+			"axisId": "rsy",
+			"axisName": "Right Stick Y",
+			"axisType": "y",
+			"axisInverted": false
+		}
+	]
+}
