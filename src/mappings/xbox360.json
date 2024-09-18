@@ -5,6 +5,7 @@
 		{
 			"buttonIndex": 0,
 			"buttonId": "a",
+			"buttonType": "button",
 			"buttonName": "A",
 			"hapticType": "dual-rumble",
 			"hapticParams": {
@@ -17,6 +18,7 @@
 		{
 			"buttonIndex": 1,
 			"buttonId": "b",
+			"buttonType": "button",
 			"buttonName": "B",
 			"hapticType": "dual-rumble",
 			"hapticParams": {
@@ -29,6 +31,7 @@
 		{
 			"buttonIndex": 2,
 			"buttonId": "x",
+			"buttonType": "button",
 			"buttonName": "X",
 			"hapticType": "dual-rumble",
 			"hapticParams": {
@@ -41,6 +44,7 @@
 		{
 			"buttonIndex": 3,
 			"buttonId": "y",
+			"buttonType": "button",
 			"buttonName": "Y",
 			"hapticType": "dual-rumble",
 			"hapticParams": {
@@ -53,6 +57,7 @@
 		{
 			"buttonIndex": 4,
 			"buttonId": "lb",
+			"buttonType": "button",
 			"buttonName": "Left Button",
 			"hapticType": "dual-rumble",
 			"hapticParams": {
@@ -65,6 +70,7 @@
 		{
 			"buttonIndex": 5,
 			"buttonId": "rb",
+			"buttonType": "button",
 			"buttonName": "Right Button",
 			"hapticType": "dual-rumble",
 			"hapticParams": {
@@ -77,6 +83,7 @@
 		{
 			"buttonIndex": 6,
 			"buttonId": "lt",
+			"buttonType": "trigger",
 			"buttonName": "Left Trigger",
 			"hapticType": "trigger-rumble",
 			"hapticParams": {
@@ -89,6 +96,7 @@
 		{
 			"buttonIndex": 7,
 			"buttonId": "rt",
+			"buttonType": "trigger",
 			"buttonName": "Right Trigger",
 			"hapticType": "trigger-rumble",
 			"hapticParams": {
@@ -101,46 +109,55 @@
 		{
 			"buttonIndex": 8,
 			"buttonId": "select",
+			"buttonType": "button",
 			"buttonName": "Select"
 		},
 		{
 			"buttonIndex": 9,
 			"buttonId": "start",
+			"buttonType": "button",
 			"buttonName": "Start"
 		},
 		{
 			"buttonIndex": 10,
 			"buttonId": "ls",
+			"buttonType": "button",
 			"buttonName": "Left Stick"
 		},
 		{
 			"buttonIndex": 11,
 			"buttonId": "rs",
+			"buttonType": "button",
 			"buttonName": "Right Stick"
 		},
 		{
 			"buttonIndex": 12,
 			"buttonId": "up",
+			"buttonType": "button",
 			"buttonName": "Up"
 		},
 		{
 			"buttonIndex": 13,
 			"buttonId": "down",
+			"buttonType": "button",
 			"buttonName": "Down"
 		},
 		{
 			"buttonIndex": 14,
 			"buttonId": "left",
+			"buttonType": "button",
 			"buttonName": "Left"
 		},
 		{
 			"buttonIndex": 15,
 			"buttonId": "right",
+			"buttonType": "button",
 			"buttonName": "Right"
 		},
 		{
 			"buttonIndex": 16,
 			"buttonId": "xbox",
+			"buttonType": "button",
 			"buttonName": "XBox Button"
 		}
 	],
