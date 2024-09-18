@@ -11,7 +11,7 @@ module.exports = {
 
 		feedbacks.controllerConnected = {
 			type: 'boolean',
-			label: 'Controller Connected',
+			name: 'Controller Connected',
 			description: 'If a controller is connected, change the color of the button',
 			defaultStyle: {
 				color: colorWhite,
@@ -26,7 +26,7 @@ module.exports = {
 
 		feedbacks.controllerLocked = {
 			type: 'boolean',
-			label: 'Controller Locked',
+			name: 'Controller Locked',
 			description: 'If the controller is locked by Companion, change the color of the button',
 			defaultStyle: {
 				color: colorWhite,
