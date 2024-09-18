@@ -276,10 +276,31 @@ module.exports = {
 					//if the button is inverted, then we need to invert the value
 					if (self.MAPPING) {
 						let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === buttonIndex)
+						console.log('Mapping for this button', buttonObj)
 						if (buttonObj?.buttonInverted) {
 							pct = 100 - pct
 							val = 1 - val
 						}
+
+						let buttonValue = val
+
+						let buttonRangeMin = -1
+						let buttonRangeMax = 1
+
+						//if we are inverting the button, then we need to invert the value
+						if (buttonObj && buttonObj.buttonRangeMin !== undefined && buttonObj.buttonRangeMax !== undefined) {
+							//get the button range values, and remap the real button value to the range value, because that's what we will use in the variable we display
+							buttonRangeMin = buttonObj.buttonRangeMin
+							buttonRangeMax = buttonObj.buttonRangeMax
+						}
+
+						let buttonRange = (buttonRangeMax - buttonRangeMin) / 2 //we are going to use the full range, so divide by 2
+
+						//now we need to remap the button value to the range value
+						let buttonDisplayValue = Math.round(buttonValue * buttonRange)
+
+						//set it to the controller object
+						self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue = buttonDisplayValue
 					}
 
 					//the key number is the button index
@@ -331,7 +352,11 @@ module.exports = {
 					variableObj[`button_${buttonId}_pressed`] = pressed
 					variableObj[`button_${buttonId}_touched`] = touched
 					variableObj[`button_${buttonId}_val`] = val
+					variableObj[`button_${buttonId}_val_abs`] = Math.abs(val)
+					variableObj[`button_${buttonId}_val_display`] = buttonDisplayValue
+					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(buttonDisplayValue) //absolute value
 					variableObj[`button_${buttonId}_pct`] = pct
+					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(pct)
 					self.setVariableValues(variableObj)
 				}
 
@@ -378,13 +403,14 @@ module.exports = {
 						axis = 0
 					}
 
-					let axisValue = axis //
+					let axisValue = axis
 
 					let axisRangeMin = -1
 					let axisRangeMax = 1
 
 					//if we are inverting the axis, then we need to invert the value
 					if (axisObj) {
+						console.log('Axis Mapping Object', axisObj)
 						if (axisObj?.axisInverted) {
 							axisValue = axisValue * -1
 						}
@@ -401,6 +427,9 @@ module.exports = {
 
 					//now we need to remap the axis value to the range value
 					let axisDisplayValue = Math.round(axisValue * axisRange) // + axisRangeMin;
+
+					//set it to the controller object
+					self.CONTROLLER.axes[idx].axisDisplayValue = axisDisplayValue
 
 					//now check the direction
 					let axisDirection = 'center'
@@ -437,9 +466,13 @@ module.exports = {
 					let variableObj = {}
 					variableObj[`axis_${axisId}_pressed`] = pressed
 					variableObj[`axis_${axisId}_val`] = axisValue
+					variableObj[`axis_${axisId}_val_abs`] = Math.abs(axisValue)
 					variableObj[`axis_${axisId}_val_display`] = axisDisplayValue
+					variableObj[`axis_${axisId}_val_display_abs`] = Math.abs(axisDisplayValue) //absolute value
 					variableObj[`axis_${axisId}_pct`] = axisPct + '%'
+					variableObj[`axis_${axisId}_pct_abs`] = Math.abs(axisPct) + '%'
 					variableObj[`axis_${axisId}_direction`] = axisDirection
+
 					self.setVariableValues(variableObj)
 
 					//now send the satellite command, if enabled
@@ -642,24 +675,6 @@ module.exports = {
 		//ensure it is a number and is positive
 		self.config.buttonDebounce = Math.abs(Number(self.config.buttonDebounce))
 
-		//display range
-		if (self.config.axisRangeMin === undefined) {
-			self.config.axisRangeMin = -3200
-		}
-		if (self.config.axisRangeMax === undefined) {
-			self.config.axisRangeMax = 3200
-		}
-
-		//ensure they are numbers and min is less than max
-		self.config.axisRangeMin = Number(self.config.axisRangeMin)
-		self.config.axisRangeMax = Number(self.config.axisRangeMax)
-
-		if (self.config.axisRangeMin > self.config.axisRangeMax) {
-			let temp = self.config.axisRangeMin
-			self.config.axisRangeMin = self.config.axisRangeMax
-			self.config.axisRangeMax = temp
-		}
-
 		//axis movement as button press
 		if (self.config.axisMovementAsButtonPress === undefined) {
 			self.config.axisMovementAsButtonPress = false
@@ -672,10 +687,6 @@ module.exports = {
 
 		//ensure it is a number and is positive
 		self.config.axisMovementPressThreshold = Math.abs(Number(self.config.axisMovementPressThreshold))
-
-		if (self.config.disconnectBehavior === undefined) {
-			self.config.disconnectBehavior = 'reset'
-		}
 
 		//now save the config so these values are displayed in the UI next time
 		self.saveConfig(self.config)
@@ -732,22 +743,75 @@ module.exports = {
 		clearInterval(self.DEBOUNCE_TIMER)
 		self.DEBOUNCE_TIMER = undefined
 
-		//reset all button values to 0, if the user chose that option in the config
-		if (self.config.disconnectBehavior == 'reset') {
+		//loop through each button and see what they chose for the disconnect behavior for that button in self.MAPPING
 			if (self.CONTROLLER) {
 				for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
-					self.CONTROLLER.buttons[i].pressed = false
-					self.CONTROLLER.buttons[i].touched = false
-					self.CONTROLLER.buttons[i].val = 0
-					self.CONTROLLER.buttons[i].pct = 0
+					let buttonObj = self.CONTROLLER.buttons[i];
+					let buttonMappingObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonObj.buttonIndex)
+					if (buttonMappingObj && buttonMappingObj.disconnectBehavior === 'reset') {
+						self.CONTROLLER.buttons[i].pressed = false
+						self.CONTROLLER.buttons[i].touched = false
+						self.CONTROLLER.buttons[i].val = 0
+						self.CONTROLLER.buttons[i].pct = 0
+
+						self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${controller.uuid} KEY=${buttonObj.buttonIndex} PRESSED=false`)
+					}
+					else if (buttonMappingObj && buttonMappingObj.disconnectBehavior === 'hold') {
+						//do nothing
+					}
+					else if (buttonMappingObj && buttonMappingObj.disconnectBehavior === 'custom') {
+						let disconnectCustomValue = buttonMappingObj.disconnectCustomValue;
+						let buttonBehavior = buttonMappingObj.disconnectCustomBehavior;
+
+						if (buttonBehavior === 'released') {
+							self.CONTROLLER.buttons[i].pressed = false
+							self.CONTROLLER.buttons[i].touched = false
+
+							self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${controller.uuid} KEY=${buttonObj.buttonIndex} PRESSED=false`)
+						}
+						else if (buttonBehavior === 'pressed') {
+							self.CONTROLLER.buttons[i].pressed = true
+							self.CONTROLLER.buttons[i].touched = true
+
+							self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${controller.uuid} KEY=${buttonObj.buttonIndex} PRESSED=true`)
+						}
+
+						self.CONTROLLER.buttons[i].val = disconnectCustomValue
+						self.CONTROLLER.buttons[i].pct = disconnectCustomValue * 100
+					}
 				}
 
 				for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
-					self.CONTROLLER.axes[i].pressed = false
-					self.CONTROLLER.axes[i].axis = 0
+					let axisObj = self.CONTROLLER.axes[i];
+					let axisMappingObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axisObj.axisIndex)
+					if (axisMappingObj && axisMappingObj.disconnectBehavior === 'reset') {
+						self.CONTROLLER.axes[i].pressed = false
+						self.CONTROLLER.axes[i].axis = 0
+
+						self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${controller.uuid} KEY=${axisObj.axisIndex} PRESSED=false`)
+					}
+					else if (axisMappingObj && axisMappingObj.disconnectBehavior === 'hold') {
+						//do nothing
+					}
+					else if (axisMappingObj && axisMappingObj.disconnectBehavior === 'custom') {
+						let disconnectCustomValue = axisMappingObj.disconnectCustomValue;
+						let axisBehavior = axisMappingObj.disconnectCustomBehavior;
+
+						if (axisBehavior === 'released') {
+							self.CONTROLLER.axes[i].pressed = false
+
+							self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${controller.uuid} KEY=${axisObj.axisIndex} PRESSED=false`)
+						}
+						else if (axisBehavior === 'pressed') {
+							self.CONTROLLER.axes[i].pressed = true
+
+							self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${controller.uuid} KEY=${axisObj.axisIndex} PRESSED=true`)
+						}
+
+						self.CONTROLLER.axes[i].axis = disconnectCustomValue;
+					}
 				}
 			}
-		}
 	},
 
 	sendCommand: function (cmd, arg1 = null, arg2 = null) {

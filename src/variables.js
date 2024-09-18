@@ -46,10 +46,19 @@ module.exports = {
 
 					variables.push({ variableId: `button_${buttonId}_pressed`, name: `Button ${buttonName} Pressed` })
 					variables.push({ variableId: `button_${buttonId}_touched`, name: `Button ${buttonName} Touched` })
-					variables.push({ variableId: `button_${buttonId}_val`, name: `Button ${buttonName} Value` })
-					variables.push({ variableId: `button_${buttonId}_val_abs`, name: `Button ${buttonName} Value Absolute` })
+					variables.push({ variableId: `button_${buttonId}_val`, name: `Button ${buttonName} Raw Value` })
+					variables.push({ variableId: `button_${buttonId}_val_abs`, name: `Button ${buttonName} Raw Value Absolute` })
+					variables.push({ variableId: `button_${buttonId}_val_display`, name: `Button ${buttonName} Display Value` })
+					variables.push({ variableId: `button_${buttonId}_val_display_abs`, name: `Button ${buttonName} Display Value Absolute` })
 					variables.push({ variableId: `button_${buttonId}_pct`, name: `Button ${buttonName} Percent` })
 					variables.push({ variableId: `button_${buttonId}_pct_abs`, name: `Button ${buttonName} Percent Absolute` })
+
+					//inverted
+					variables.push({ variableId: `button_${buttonId}_inverted`, name: `Button ${buttonName} Inverted` })
+
+					//range display
+					variables.push({ variableId: `button_${buttonId}_range_display_min`, name: `Button ${buttonName} Range Display Min` })
+					variables.push({ variableId: `button_${buttonId}_range_display_max`, name: `Button ${buttonName} Range Display Max` })
 				}
 			}
 
@@ -75,6 +84,9 @@ module.exports = {
 
 					//current direction
 					variables.push({ variableId: `axis_${axisId}_direction`, name: `Axis ${axisName} Current Direction` })
+
+					//type
+					variables.push({ variableId: `axis_${axisId}_type`, name: `Axis ${axisName} Type` })
 
 					//inverted
 					variables.push({ variableId: `axis_${axisId}_inverted`, name: `Axis ${axisName} Inverted` })
@@ -142,10 +154,19 @@ module.exports = {
 					variableObj[`button_${buttonId}_touched`] = self.CONTROLLER.buttons[i].touched ? 'True' : 'False'
 
 					variableObj[`button_${buttonId}_val`] = self.CONTROLLER.buttons[i].val || '0'
-					variableObj[`button_${buttonId}_val_abs`] = Math.abs(self.CONTROLLER.buttons[i].val || 0)
+					variableObj[`button_${buttonId}_val_abs`] = Math.abs(self.CONTROLLER.buttons[i].val || 0)	
+					
+					variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].valDisplay || '0'
+					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].valDisplay || 0)	
 
 					variableObj[`button_${buttonId}_pct`] = (self.CONTROLLER.buttons[i].pct || '0') + '%'
 					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0) + '%'
+
+					let buttonInverted = buttonObj?.buttonInverted || false
+					variableObj[`button_${buttonId}_inverted`] = buttonInverted ? 'On' : 'Off'
+
+					variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].val_display || '0'
+					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].val_display || 0)
 				}
 
 				for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
@@ -177,8 +198,8 @@ module.exports = {
 					variableObj[`axis_${axisId}_val`] = self.CONTROLLER.axes[i].axis || '0'
 					variableObj[`axis_${axisId}_val_abs`] = Math.abs(self.CONTROLLER.axes[i].axi || 0)
 
-					variableObj[`axis_${axisId}_val_display`] = self.CONTROLLER.axes[i].axis_display || '0'
-					variableObj[`axis_${axisId}_val_display_abs`] = Math.abs(self.CONTROLLER.axes[i].axis_display || 0)
+					variableObj[`axis_${axisId}_val_display`] = self.CONTROLLER.axes[i].axisDisplayValue || '0'
+					variableObj[`axis_${axisId}_val_display_abs`] = Math.abs(self.CONTROLLER.axes[i].axisDisplayValue || 0)
 
 					variableObj[`axis_${axisId}_pct`] = (self.CONTROLLER.axes[i].pct || 0) + '%'
 					variableObj[`axis_${axisId}_pct_abs`] = Math.abs(self.CONTROLLER.axes[i].pct || 0) + '%'

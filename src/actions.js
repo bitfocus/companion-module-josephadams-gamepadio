@@ -185,6 +185,72 @@ module.exports = {
 				}
 			}
 
+			actions.setButtonRangeDisplay = {
+				name: 'Button - Set Button Range Display',
+				description: 'Change the display range of the minimum and maximum values of the button.',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Button',
+						id: 'button',
+						default: self.CHOICES_BUTTONS[0].id,
+						choices: self.CHOICES_BUTTONS,
+					},
+					{
+						type: 'textinput',
+						label: 'Button Range Display Min',
+						id: 'range_min',
+						default: '0',
+						useVariables: true,
+					},
+					{
+						type: 'textinput',
+						label: 'Button Range Display Max',
+						id: 'range_max',
+						default: '100',
+						useVariables: true,
+					},
+				],
+				callback: async (action) => {
+					let range_min = await self.parseVariablesInString(action.options.range_min)
+					let range_max = await self.parseVariablesInString(action.options.range_max)
+	
+					range_min = parseInt(range_min)
+					range_max = parseInt(range_max)
+	
+					//ensure min is less than max
+					if (isNaN(range_min) || isNaN(range_max)) {
+						range_min = 0
+						range_max = 100
+					}
+	
+					if (range_min > range_max) {
+						let temp = range_min
+						range_min = range_max
+						range_max = temp
+					}
+	
+					let button = parseInt(action.options.button)
+					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
+					if (buttonObj) {
+						buttonObj.buttonRangeMin = range_min
+						buttonObj.buttonRangeMax = range_max
+					}
+
+					//if no mapping, create one
+					if (!buttonObj) {
+						self.MAPPING?.buttons.push({ buttonIndex: button, buttonRangeMin: range_min, buttonRangeMax: range_max })
+					}
+						
+					//save the mapping to the config table
+					self.config.MAPPING = self.MAPPING
+					self.config.buttonMapping = 'custom'
+					self.saveConfig(self.config)
+					self.checkFeedbacks()
+					self.checkVariables()
+				},
+			}
+
 			actions.setButtonPressThreshold = {
 				name: 'Surface Settings - Set Button Press Threshold',
 				description: 'Change the percentage of variance in the button that must be met to trigger a button *PRESS*.',
@@ -253,6 +319,52 @@ module.exports = {
 					self.checkFeedbacks()
 					self.checkVariables()
 				},
+			}
+
+			actions.buttonType = {
+				name: 'Surface Settings - Set Button Type',
+				description: 'Change the button type for a specific button on the controller.',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Button',
+						id: 'button',
+						default: self.CHOICES_BUTTONS[0].id,
+						choices: self.CHOICES_BUTTONS,
+					},
+					{
+						type: 'dropdown',
+						label: 'Button Type',
+						id: 'type',
+						default: 'button',
+						choices: [
+							{ id: 'button', label: 'Button' },
+							{ id: 'trigger', label: 'Trigger' },
+						],
+					},
+				],
+				callback: async (action) => {
+					let button = parseInt(action.options.button)
+					let type = action.options.type
+
+					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
+
+					if (buttonObj) {
+						buttonObj.buttonType = type
+					}
+
+					//if no mapping, create one
+					if (!buttonObj) {
+						self.MAPPING?.buttons.push({ buttonIndex: button, buttonType: type })
+					}
+
+					//save the mapping to the config table
+					self.config.MAPPING = self.MAPPING
+					self.config.buttonMapping = 'custom'
+					self.saveConfig(self.config)
+					self.checkFeedbacks()
+					self.checkVariables()
+				}
 			}
 
 			//invert button press - choice of button
@@ -1016,25 +1128,129 @@ module.exports = {
 			},
 		}
 
-		//behavior on disconnect
-		actions.onDisconnect = {
-			name: 'Other Settings - Behavior On Disconnect',
-			description: 'Change the behavior of the module when the controller is disconnected.',
+		actions.onDisconnectButton = {
+			name: 'Other Settings - Button Behavior On Disconnect',
+			description: 'Change the behavior of the specific button when the controller is disconnected.',
 			options: [
+				{
+					type: 'dropdown',
+					label: 'Button',
+					id: 'button',
+					default: self.CHOICES_BUTTONS[0].id,
+					choices: self.CHOICES_BUTTONS,
+				},
 				{
 					type: 'dropdown',
 					label: 'On Disconnect',
 					id: 'disconnect',
 					default: 'hold',
 					choices: [
-						{ id: 'reset', label: 'Reset all Button/Axis Values to 0' },
+						{ id: 'reset', label: 'Reset Value to 0' },
 						{ id: 'hold', label: 'Hold Last Values' },
+						{ id: 'custom', label: 'Custom Value' },
 					],
+				},
+				{
+					type: 'textinput',
+					label: 'Custom Value',
+					id: 'customValue',
+					default: '0',
+					useVariables: true,
+					isVisible: (options) => options.disconnect == 'custom',
+				},
+				{
+					type: 'dropdown',
+					label: 'Button Behavior',
+					id: 'buttonBehavior',
+					default: 'pressed',
+					choices: [
+						{ id: 'pressed', label: 'Pressed' },
+						{ id: 'released', label: 'Released' },
+					],
+				}
+			],
+			callback: async (action) => {
+				let button = parseInt(action.options.button)
+				let disconnect = action.options.disconnect
+				let customValue = await self.parseVariablesInString(action.options.customValue)
+				let buttonBehavior = action.options.buttonBehavior
+
+				let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
+				if (buttonObj) {
+					buttonObj.disconnectBehavior = disconnect
+					buttonObj.disconnectCustomValue = customValue
+					buttonObj.buttonBehavior = buttonBehavior
+				}
+
+				//if no mapping, create one
+				if (!buttonObj) {
+					self.MAPPING?.buttons.push({ buttonIndex: button, disconnectBehavior: disconnect, disconnectCustomValue: customValue, buttonBehavior: buttonBehavior })
+				}
+
+				//save the mapping to the config table
+				self.config.MAPPING = self.MAPPING
+				self.config.buttonMapping = 'custom'
+				self.saveConfig(self.config)
+				self.checkFeedbacks()
+				self.checkVariables()
+			},
+		}
+
+		actions.onDisconnectAxis = {
+			name: 'Other Settings - Axis Behavior On Disconnect',
+			description: 'Change the behavior of the specific axis when the controller is disconnected.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Axis',
+					id: 'axis',
+					default: self.CHOICES_AXES[0].id,
+					choices: self.CHOICES_AXES,
+				},
+				{
+					type: 'dropdown',
+					label: 'On Disconnect',
+					id: 'disconnect',
+					default: 'hold',
+					choices: [
+						{ id: 'reset', label: 'Reset Value to 0' },
+						{ id: 'hold', label: 'Hold Last Values' },
+						{ id: 'custom', label: 'Custom Value' },
+					],
+				},
+				{
+					type: 'textinput',
+					label: 'Custom Value',
+					id: 'customValue',
+					default: '0',
+					useVariables: true,
+					isVisible: (options) => options.disconnect == 'custom',
 				},
 			],
 			callback: async (action) => {
-				self.config.disconnectBehavior = action.options.disconnect
+				let axis = parseInt(action.options.axis)
+				let disconnect = action.options.disconnect
+
+				let customValue = await self.parseVariablesInString(action.options.customValue)
+
+				let axisObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axis)
+
+				if (axisObj) {
+					axisObj.disconnectBehavior = disconnect
+					axisObj.disconnectCustomValue = customValue
+				}
+
+				//if no mapping, create one
+				if (!axisObj) {
+					self.MAPPING?.axes.push({ axisIndex: axis, disconnectBehavior: disconnect, disconnectCustomValue: customValue })
+				}
+
+				//save the mapping to the config table
+				self.config.MAPPING = self.MAPPING
+				self.config.buttonMapping = 'custom'
 				self.saveConfig(self.config)
+				self.checkFeedbacks()
+				self.checkVariables()
 			},
 		}
 

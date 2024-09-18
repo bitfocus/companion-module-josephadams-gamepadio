@@ -329,37 +329,6 @@ module.exports = {
 						'The axis movement threshold is the percentage of variance in the axis that must be met to trigger a button <b>PRESS</b> or <b>RELEASE. This is useful for joysticks that may not fully reach 100%. So, for example, if set to 10, the joystick must be within 90-100% to trigger a press, or 0-10% to trigger a release.',
 					isVisible: (config) => config.useAsSurface == true,
 				})
-
-				//hr
-				configObj.push({
-					type: 'static-text',
-					id: 'info-hr3',
-					width: 12,
-					label: 'Other Settings',
-					value: '<hr />',
-				})
-
-				//behavior on disconnect
-				configObj.push({
-					type: 'dropdown',
-					id: 'disconnectBehavior',
-					label: 'Behavior on Disconnect',
-					width: 4,
-					default: 'reset',
-					choices: [
-						{ id: 'reset', label: 'Reset all Button/Axis values to 0' },
-						{ id: 'hold', label: 'Hold Last Value' },
-					],
-				})
-
-				configObj.push({
-					type: 'static-text',
-					id: 'info-disconnectbehavior',
-					width: 8,
-					label: 'Behavior on Disconnect',
-					value:
-						'The behavior on disconnect is what happens when the module loses connection to gamepad-io and/or the controller you were using. You can choose to reset all buttons and axes to 0, or hold the last value until reconnected.',
-				})
 			} else {
 				configObj.push({
 					type: 'static-text',
