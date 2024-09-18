@@ -8,8 +8,6 @@ module.exports = {
 		variables.push({ variableId: 'information', name: 'Information' })
 		variables.push({ variableId: 'version', name: 'gamepad-io Version' })
 
-		//module config variables
-		//use as surface true/false
 		variables.push({ variableId: 'use_as_surface', name: 'Use as Surface On/Off' })
 
 		if (self.config.useAsSurface) {
@@ -41,7 +39,7 @@ module.exports = {
 
 					if (buttonObj) {
 						buttonId = buttonObj.buttonId
-						buttonName = buttonObj.buttonName
+						buttonName = buttonObj.buttonName || buttonObj.buttonIndex
 					}
 
 					variables.push({ variableId: `button_${buttonId}_pressed`, name: `Button ${buttonName} Pressed` })
@@ -53,7 +51,7 @@ module.exports = {
 					variables.push({ variableId: `button_${buttonId}_pct`, name: `Button ${buttonName} Percent` })
 					variables.push({ variableId: `button_${buttonId}_pct_abs`, name: `Button ${buttonName} Percent Absolute` })
 
-					//inverted
+					variables.push({ variableId: `button_${buttonId}_type`, name: `Button ${buttonName} Type` })
 					variables.push({ variableId: `button_${buttonId}_inverted`, name: `Button ${buttonName} Inverted` })
 
 					//range display
@@ -82,13 +80,9 @@ module.exports = {
 					variables.push({ variableId: `axis_${axisId}_pct`, name: `Axis ${axisName} Percent` })
 					variables.push({ variableId: `axis_${axisId}_pct_abs`, name: `Axis ${axisName} Percent Absolute` })
 
-					//current direction
 					variables.push({ variableId: `axis_${axisId}_direction`, name: `Axis ${axisName} Current Direction` })
 
-					//type
 					variables.push({ variableId: `axis_${axisId}_type`, name: `Axis ${axisName} Type` })
-
-					//inverted
 					variables.push({ variableId: `axis_${axisId}_inverted`, name: `Axis ${axisName} Inverted` })
 
 					//range display
@@ -141,13 +135,11 @@ module.exports = {
 
 				for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
 					let buttonId = i //generic
-					let buttonName = i //generic
 
 					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === i)
 
 					if (buttonObj) {
 						buttonId = buttonObj.buttonId
-						buttonName = buttonObj.buttonName
 					}
 
 					variableObj[`button_${buttonId}_pressed`] = self.CONTROLLER.buttons[i].pressed ? 'True' : 'False'
@@ -161,6 +153,8 @@ module.exports = {
 
 					variableObj[`button_${buttonId}_pct`] = (self.CONTROLLER.buttons[i].pct || '0') + '%'
 					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0) + '%'
+
+					variableObj[`button_${buttonId}_type`] = self.CONTROLLER.buttons[i].buttonType || 'Button'
 
 					let buttonInverted = buttonObj?.buttonInverted || false
 					variableObj[`button_${buttonId}_inverted`] = buttonInverted ? 'On' : 'Off'
