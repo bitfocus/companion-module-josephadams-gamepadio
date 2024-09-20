@@ -54,7 +54,7 @@ _Configuration Steps:_
   - `Set Axis Deadzones (Per Axis)`: Change the range of the joystick/axis movement (per axis) that is ignored.
   - `Set Axis Movement as Button Presses (Global/For All Axes)`: Allow axis movement to be interpreted as a surface button press.
   - `Set Axis Movement Press Threshold (Global/For All Axes)`: Change the percentage of variance in the axis in order for a button to be _PRESSED_ or _RELEASED_.
-  - `Set Axis Type (Per Axis)`: Used to tell the module whether this is an X or Y axis, which informs the variable outputs.
+  - `Set Axis Type (Per Axis)`: Used to tell the module whether this is an X or Y axis, which informs the variable outputs. It helps you to know if it is an axis going left/right, or up/down.
   - `Set Axis Invert (Per Axis)`: Used to invert a specific axis so that negative movement becomes positive, etc.
 
 - Controller Settings:
