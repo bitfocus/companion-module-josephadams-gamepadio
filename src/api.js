@@ -112,7 +112,7 @@ module.exports = {
 				for (let i = 0; i < controllers.length; i++) {
 					let controller = controllers[i]
 					let foundController = self.STATUS.controllers.find((obj) => obj.uuid === controller.uuid)
-					if (foundController === undefined) {
+					if (foundController === undefined) { //a new controller was added
 						changed = true
 						break
 					}
@@ -122,7 +122,7 @@ module.exports = {
 					for (let i = 0; i < self.STATUS.controllers.length; i++) {
 						let controller = self.STATUS.controllers[i]
 						let foundController = controllers.find((obj) => obj.uuid === controller.uuid)
-						if (foundController === undefined) {
+						if (foundController === undefined) { //a controller was removed
 							changed = true
 							break
 						}
@@ -202,9 +202,11 @@ module.exports = {
 					self.CONTROLLER.name = self.CONTROLLER.id.split('(')[0].trim() //set the friendly name
 					self.updateStatus(InstanceStatus.Ok)
 
+					self.checkFeedbacks('controllerConnected')
+
 					//join the socket io room for this controller
 					if (self.config.verbose) {
-						self.log('debug', 'Subscribing to gamepad events for: ' + self.CONTROLLER.uuid)
+						self.log('debug', 'Subscribing to controller events for: ' + self.CONTROLLER.uuid)
 					}
 
 					self.socket.emit('join_room', self.CONTROLLER.uuid)
@@ -259,10 +261,11 @@ module.exports = {
 	},
 
 	processButtonEvent: function (uuid, buttonIndex, pressed, touched, val, pct) {
+		//processes the data from the button event received from gamepad-io
 		let self = this;
 
-		try {
-			if (self.CONTROLLER) {
+		//try {
+			if (self.CONTROLLER) { //ignore the data if we do not have a controller configured
 				//update the button data, but only if it is for the controller we are tracking
 				if (self.CONTROLLER.uuid === uuid && self.LOCKED == false) {
 					self.CONTROLLER.buttons[buttonIndex].pressed = pressed
@@ -349,12 +352,12 @@ module.exports = {
 					}
 
 					let variableObj = {}
-					variableObj[`button_${buttonId}_pressed`] = pressed
-					variableObj[`button_${buttonId}_touched`] = touched
+					variableObj[`button_${buttonId}_pressed`] = pressed ? 'True' : 'False'
+					variableObj[`button_${buttonId}_touched`] = touched ? 'True' : 'False'
 					variableObj[`button_${buttonId}_val`] = val
 					variableObj[`button_${buttonId}_val_abs`] = Math.abs(val)
-					variableObj[`button_${buttonId}_val_display`] = buttonDisplayValue
-					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(buttonDisplayValue) //absolute value
+					variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue
+					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue) //absolute value
 					variableObj[`button_${buttonId}_pct`] = pct
 					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(pct)
 					self.setVariableValues(variableObj)
@@ -364,10 +367,10 @@ module.exports = {
 				//really only want to call checkVariables when it's a larger dataset to process, as this can get costly over time
 				//self.checkVariables();
 			}
-		}
-		catch (e) {
-			self.log('error', e)
-		}
+		//}
+		//catch (e) {
+	//		self.log('error', e)
+//		}
 	},
 
 	processAxisEvent: function (uuid, idx, pressed, axis) {
@@ -464,7 +467,7 @@ module.exports = {
 					}
 
 					let variableObj = {}
-					variableObj[`axis_${axisId}_pressed`] = pressed
+					variableObj[`axis_${axisId}_pressed`] = pressed ? 'True' : 'False'
 					variableObj[`axis_${axisId}_val`] = axisValue
 					variableObj[`axis_${axisId}_val_abs`] = Math.abs(axisValue)
 					variableObj[`axis_${axisId}_val_display`] = axisDisplayValue
