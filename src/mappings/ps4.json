@@ -19,7 +19,7 @@
 			"buttonIndex": 1,
 			"buttonId": "circle",
 			"buttonType": "button",
-			"buttonName": "X",
+			"buttonName": "Circle",
 			"hapticType": "dual-rumble",
 			"hapticParams": {
 				"duration": 0.1,
