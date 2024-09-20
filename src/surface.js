@@ -42,10 +42,7 @@ module.exports = {
 
 		//close socket if it exists
 		if (self.SOCKET_COMPANION !== undefined) {
-			for (let i = 0; i <= self.STATUS.controllers.length; i++) {
-				let controller = self.STATUS.controllers[i]
-				self.sendCompanionSatelliteCommand(`REMOVE-DEVICE DEVICEID=${controller.uuid}`)
-			}
+				self.sendCompanionSatelliteCommand(`REMOVE-DEVICE DEVICEID=${self.CONTROLLER.uuid}`)
 
 			self.sendCompanionSatelliteCommand('QUIT')
 			self.SOCKET_COMPANION.destroy()
