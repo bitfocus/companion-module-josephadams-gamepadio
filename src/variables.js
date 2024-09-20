@@ -16,11 +16,11 @@ module.exports = {
 			variables.push({ variableId: 'button_press_threshold', name: 'Button Press Threshold (%)' })
 			variables.push({ variableId: 'button_release_threshold', name: 'Button Release Threshold (%)' })
 			variables.push({ variableId: 'button_debounce', name: 'Button Debounce (ms)' })
-			variables.push({ variableId: 'axis_deadzone_neg', name: 'Axis Deadzone Negative' })
-			variables.push({ variableId: 'axis_deadzone_pos', name: 'Axis Deadzone Positive' })
 			variables.push({ variableId: 'axis_button_press', name: 'Axis will Button Press' })
 			variables.push({ variableId: 'axis_movement_threshold', name: 'Axis Movement Threshold (%)' })
 		}
+
+		variables.push({ variableId: `controller_connected`, name: `Controller Connected` })
 
 		if (self.CONTROLLER) {
 			variables.push({ variableId: `controller_locked`, name: `Controller Locked` })
@@ -112,6 +112,8 @@ module.exports = {
 			//module config variables
 			variableObj['use_as_surface'] = self.config.useAsSurface ? 'On' : 'Off'
 
+			variableObj['controller_connected'] = self.CONTROLLER ? 'True' : 'False'
+
 			if (self.config.useAsSurface) {
 				variableObj['haptic_when_pressed'] = self.config.hapticWhenPressed ? 'On' : 'Off'
 
@@ -119,7 +121,7 @@ module.exports = {
 				variableObj['button_release_threshold'] = self.config.buttonReleaseThreshold + '%'
 				variableObj['button_debounce'] = self.config.buttonDebounce
 
-				variableObj['axis_button_press'] = self.config.axisButtonPress ? 'On' : 'Off'
+				variableObj['axis_button_press'] = self.config.axisMovementAsButtonPress ? 'On' : 'Off'
 				variableObj['axis_movement_threshold'] = self.config.axisMovementPressThreshold + '%'
 			}
 
@@ -190,7 +192,7 @@ module.exports = {
 					variableObj[`axis_${axisId}_pressed`] = self.CONTROLLER.axes[i].pressed ? 'True' : 'False'
 
 					variableObj[`axis_${axisId}_val`] = self.CONTROLLER.axes[i].axis || '0'
-					variableObj[`axis_${axisId}_val_abs`] = Math.abs(self.CONTROLLER.axes[i].axi || 0)
+					variableObj[`axis_${axisId}_val_abs`] = Math.abs(self.CONTROLLER.axes[i].axis || 0)
 
 					variableObj[`axis_${axisId}_val_display`] = self.CONTROLLER.axes[i].axisDisplayValue || '0'
 					variableObj[`axis_${axisId}_val_display_abs`] = Math.abs(self.CONTROLLER.axes[i].axisDisplayValue || 0)
