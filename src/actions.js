@@ -904,6 +904,10 @@ module.exports = {
 				}
 
 				self.LOCKED = lock
+				self.checkFeedbacks('controllerLocked')
+
+				//set variable to locked
+				self.setVariableValues({ 'controller_locked': self.LOCKED })
 			},
 		}
 
