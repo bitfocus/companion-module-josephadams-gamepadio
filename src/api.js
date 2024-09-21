@@ -6,6 +6,8 @@ module.exports = {
 	initConnection: function () {
 		let self = this
 
+		self.log('info', 'Initializing connection to gamepad-io...')
+
 		//close any satellite connections
 		self.CompanionSatellite_Close()
 		self.CONTROLLER_SURFACE_UUID = undefined
@@ -206,7 +208,7 @@ module.exports = {
 
 					//join the socket io room for this controller
 					if (self.config.verbose) {
-						self.log('debug', 'Subscribing to controller events for: ' + self.CONTROLLER.uuid)
+						self.log('info', 'Subscribing to controller events for: ' + self.CONTROLLER.uuid)
 					}
 
 					self.socket.emit('join_room', self.CONTROLLER.uuid)
@@ -279,7 +281,7 @@ module.exports = {
 					//if the button is inverted, then we need to invert the value
 					if (self.MAPPING) {
 						let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === buttonIndex)
-						console.log('Mapping for this button', buttonObj)
+						//console.log('Mapping for this button', buttonObj)
 						if (buttonObj?.buttonInverted) {
 							pct = 100 - pct
 							val = 1 - val
@@ -401,9 +403,13 @@ module.exports = {
 						posSensitivity = axisObj.axisPosDeadzone
 					}
 
+					let axisDeadzoneActive = false
+
 					//if the event entirely falls within the deadzone, just assume it to be 0
 					if (axis > negSensitivity && axis < posSensitivity) {
 						axis = 0
+						axisDeadzoneActive = true
+						self.log('info', `Axis ${idx} is in the deadzone. Setting to 0.`)
 					}
 
 					let axisValue = axis
@@ -413,7 +419,7 @@ module.exports = {
 
 					//if we are inverting the axis, then we need to invert the value
 					if (axisObj) {
-						console.log('Axis Mapping Object', axisObj)
+						//console.log('Axis Mapping Object', axisObj)
 						if (axisObj?.axisInverted) {
 							axisValue = axisValue * -1
 						}
@@ -435,25 +441,34 @@ module.exports = {
 					self.CONTROLLER.axes[idx].axisDisplayValue = axisDisplayValue
 
 					//now check the direction
-					let axisDirection = 'center'
+					let axisDirection = 'Center'
 
 					if (axisValue < 0) {
 						//get the axis type from the button mapping definition and if it is X, use "left, it is Y, use "up"
 						if (self.MAPPING) {
 							let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
 							if (axisObj?.axisType) {
-								axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'left' : 'up'
+								axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'Left' : 'Up'
 							}
 						} else {
-							axisDirection = 'negative'
+							axisDirection = 'Negative'
 						}
 					} else if (axisValue > 0) {
 						//get the axis type from the button mapping definition and if it is X, use "right, it is Y, use "down"
 						if (self.MAPPING) {
 							let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
-							axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'right' : 'down'
+							axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'Right' : 'Down'
 						} else {
-							axisDirection = 'positive'
+							axisDirection = 'Positive'
+						}
+					}
+					else if (axisValue === 0) {
+						if (self.MAPPING) {
+							let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
+							axisDirection = 'Center'
+						}
+						else {
+							axisDirection = 'Neutral'
 						}
 					}
 
@@ -489,28 +504,37 @@ module.exports = {
 						let axisPctAbs = Math.abs(axisPct)
 						let percentAllowed = 100 - axisMovementPressThreshold
 
-						//if the percent is less than the threshold, we release; if greater than, we press
-						if (axisPctAbs < percentAllowed) {
-							//trigger a release depending on if it's positive or negative
-							if (axisPct < 0) {
-								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberNeg} PRESSED=false`)
-							} else if (axisPct > 0) {
-								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberPos} PRESSED=false`)
-							}
-						} else {
-							if (axisPct < 0) {
-								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberNeg} PRESSED=true`)
-								//send haptic, if enabled
-								if (self.config.hapticWhenPressed == true) {
-									self.sendHapticFeedback(uuid, 'axis', keyNumberNeg)
-								}
-							} else if (axisPct > 0) {
-								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberPos} PRESSED=true`)
-								//send haptic, if enabled
-								if (self.config.hapticWhenPressed == true) {
-									self.sendHapticFeedback(uuid, 'axis', keyNumberPos)
-								}
-							}
+						//if the deadzone is active, we do nothing
+						if (axisDeadzoneActive) {
+							//if the axis is in the deadzone, we release the buttons
+							//self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberNeg} PRESSED=false`)
+							//self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberPos} PRESSED=false`)
+						} else
+						{
+
+//if the percent is less than the threshold, we release; if greater than, we press
+if (axisPctAbs < percentAllowed) {
+	//trigger a release depending on if it's positive or negative
+	if (axisPct < 0) {
+		self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberNeg} PRESSED=false`)
+	} else if (axisPct > 0) {
+		self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberPos} PRESSED=false`)
+	}
+} else {
+	if (axisPct < 0) {
+		self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberNeg} PRESSED=true`)
+		//send haptic, if enabled
+		if (self.config.hapticWhenPressed == true) {
+			self.sendHapticFeedback(uuid, 'axis', keyNumberNeg)
+		}
+	} else if (axisPct > 0) {
+		self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumberPos} PRESSED=true`)
+		//send haptic, if enabled
+		if (self.config.hapticWhenPressed == true) {
+			self.sendHapticFeedback(uuid, 'axis', keyNumberPos)
+		}
+	}
+}
 						}
 					}
 				}
@@ -591,22 +615,132 @@ module.exports = {
 			//load the mapping from the stored config
 			self.log('info', 'Loading Custom Button Mapping.')
 			self.MAPPING = self.config.MAPPING
-			return
 		}
+		else {
+			self.log('info', `Loading Button Mapping: ${self.config.buttonMapping}`)
 
-		self.log('info', `Loading Button Mapping: ${self.config.buttonMapping}`)
+			if (self.config.buttonMapping === 'custom-file') {
+				this.loadCustomMapping(this.config.customFile)
+			}
+			else {
+				try {
+					self.MAPPING = require(`./mappings/${self.config.buttonMapping}.json`)
+				} catch (err) {
+					self.log('error', `Error loading button mapping: ${err}`)
+					self.MAPPING = undefined
+					self.config.buttonMapping = 'generic'
+				}
+			}	
+		}		
+		
+		//load defaults for any missing values
+		if (self.MAPPING) {
+			//if self.config.buttonRangeMinDefault and self.config.buttonRangeMaxDefault are not set, set them to 0 and 1
+			if (self.config.buttonRangeMinDefault === undefined) {
+				self.config.buttonRangeMinDefault = 0
+			}
+			if (self.config.buttonRangeMaxDefault === undefined) {
+				self.config.buttonRangeMaxDefault = 1
+			}
 
-		if (self.config.buttonMapping === 'custom-file') {
-			this.loadCustomMapping(this.config.customFile)
-			return;
-		}
+			//loop through each button and assign defaults for disconnectBehavior, buttonRangeMin/Max, buttonType, buttonInverted, hapticType, hapticParams
+			for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
+				let buttonObj = self.CONTROLLER.buttons[i]
+				let buttonMappingObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonObj.buttonIndex)
+				
+				if (buttonMappingObj) {
+					if (buttonMappingObj.disconnectBehavior === undefined) {
+						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing disconnectBehavior. Setting to reset.`)
+						buttonMappingObj.disconnectBehavior = 'reset'
+					}
+					if (buttonMappingObj.buttonRangeMin === undefined) {
+						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing buttonRangeMin. Setting to Config default of ${self.config.buttonRangeMinDefault}.`)
+						buttonMappingObj.buttonRangeMin = self.config.buttonRangeMinDefault
+					}
+					if (buttonMappingObj.buttonRangeMax === undefined) {
+						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing buttonRangeMax. Setting to Config default of ${self.config.buttonRangeMaxDefault}.`)
+						buttonMappingObj.buttonRangeMax = self.config.buttonRangeMaxDefault
+					}
+					if (buttonMappingObj.buttonType === undefined) {
+						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing buttonType. Setting to type: button.`)
+						buttonMappingObj.buttonType = 'button'
+					}
+					if (buttonMappingObj.buttonInverted === undefined) {
+						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing buttonInverted. Setting to false.`)
+						buttonMappingObj.buttonInverted = false
+					}
+					if (buttonMappingObj.hapticType === undefined) {
+						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing hapticType. Setting to dual-rumble.`)
+						buttonMappingObj.hapticType = 'dual-rumble'
+					}
+					if (buttonMappingObj.hapticParams === undefined) {
+						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing hapticParams. Setting to default values.`)
+						buttonMappingObj.hapticParams = {
+							duration: 0.1,
+							startDelay: 0,
+							strongMagnitude: 1.0,
+							weakMagnitude: 0.5,
+						}
+					}
+				}
+			}
 
-		try {
-			self.MAPPING = require(`./mappings/${self.config.buttonMapping}.json`)
-		} catch (err) {
-			self.log('error', `Error loading button mapping: ${err}`)
-			self.MAPPING = undefined
-			self.config.buttonMapping = 'generic'
+			//if self.config.axisDeadzoneNegDefault and self.config.axisDeadzonePosDefault are not set, set them to 0.1
+			if (self.config.axisDeadzoneNegDefault === undefined) {
+				self.config.axisDeadzoneNegDefault = -0.1
+			}
+			if (self.config.axisDeadzonePosDefault === undefined) {
+				self.config.axisDeadzonePosDefault = 0.1
+			}
+
+			//if self.config.axisRangeMinDefault and self.config.axisRangeMaxDefault are not set, set them to -1 and 1
+			if (self.config.axisRangeMinDefault === undefined) {
+				self.config.axisRangeMinDefault = -1
+			}
+			if (self.config.axisRangeMaxDefault === undefined) {
+				self.config.axisRangeMaxDefault = 1
+			}
+
+			//loop through each axis and assign defaults for axisInverted, axisRangeMin/Max, axisType, axisInverted
+			for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
+				let axisObj = self.CONTROLLER.axes[i]
+				let axisMappingObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axisObj.axisIndex)
+				console.log('Axis Mapping Object Loading', axisMappingObj)
+				if (axisMappingObj) {
+					if (axisMappingObj.disconnectBehavior === undefined) {
+						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing disconnectBehavior. Setting to reset.`)
+						axisMappingObj.disconnectBehavior = 'reset'
+					}
+					if (axisMappingObj.axisNegDeadzone === undefined) {
+						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisNegDeadzone. Setting to default of ${self.config.axisDeadzoneNegDefault}.`)
+						axisMappingObj.axisNegDeadzone = self.config.axisDeadzoneNegDefault
+					}
+					if (axisMappingObj.axisPosDeadzone === undefined) {
+						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisPosDeadzone. Setting to default of ${self.config.axisDeadzonePosDefault}.`)
+						axisMappingObj.axisPosDeadzone = self.config.axisDeadzonePosDefault
+					}
+					if (axisMappingObj.axisInverted === undefined) {
+						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisInverted. Setting to false.`)
+						axisMappingObj.axisInverted = false
+					}
+					if (axisMappingObj.axisRangeMin === undefined) {
+						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisRangeMin. Setting to Config default of ${self.config.axisRangeMinDefault}.`)
+						axisMappingObj.axisRangeMin = self.config.axisRangeMinDefault
+					}
+					if (axisMappingObj.axisRangeMax === undefined) {
+						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisRangeMax. Setting to Config default of ${self.config.axisRangeMaxDefault}.`)
+						axisMappingObj.axisRangeMax = self.config.axisRangeMaxDefault
+					}
+					if (axisMappingObj.axisType === undefined) {
+						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisType. Setting to type: x.`)
+						axisMappingObj.axisType = 'x'
+					}
+					if (axisMappingObj.axisInverted === undefined) {
+						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisInverted. Setting to false.`)
+						axisMappingObj.axisInverted = false
+					}
+				}
+			}
 		}
                   
 		//now save it to the config so it is stored for next time
@@ -618,6 +752,7 @@ module.exports = {
 		let self = this
 
 		try {
+			self.log('info', `Loading Custom Button Mapping from: ${path}`)
 			self.MAPPING = require(path)
 			self.config.MAPPING = self.MAPPING
 			self.saveConfig(self.config)
@@ -632,6 +767,7 @@ module.exports = {
 		let self = this
 
 		try {
+			self.log('info', `Saving Custom Button Mapping to: ${path}`)
 			fs.writeFileSync(path, JSON.stringify(self.MAPPING, null, 2))
 		} catch (err) {
 			self.log('error', `Error saving custom button mapping: ${err}`)
@@ -842,4 +978,12 @@ module.exports = {
 			}
 		}
 	},
+
+	logVerbose: function (level, message) {
+		let self = this
+
+		if (self.config.verbose) {
+			self.log(level, message)
+		}
+	}
 }
