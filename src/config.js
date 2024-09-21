@@ -280,6 +280,32 @@ module.exports = {
 					isVisible: (config) => config.useAsSurface == true,
 				})
 
+				//button range display min/max defaults
+				configObj.push({
+					type: 'textinput',
+					id: 'buttonRangeMinDefault',
+					label: 'Button Range Minimum',
+					width: 3,
+					default: 0,
+				})
+
+				configObj.push({
+					type: 'textinput',
+					id: 'buttonRangeMaxDefault',
+					label: 'Button Range Maximum',
+					width: 3,
+					default: 500,
+				})
+
+				configObj.push({
+					type: 'static-text',
+					id: 'info-buttonrange',
+					width: 6,
+					label: 'Button Range Display Defaults',
+					value:
+						'The display range is the minimum and maximum values to actually display/use in variables. This is useful for changing the range of a button to a different value than the default 0 to 1.',
+				})
+
 				//hr
 				configObj.push({
 					type: 'static-text',
@@ -328,6 +354,61 @@ module.exports = {
 					value:
 						'The axis movement threshold is the percentage of variance in the axis that must be met to trigger a button <b>PRESS</b> or <b>RELEASE. This is useful for joysticks that may not fully reach 100%. So, for example, if set to 10, the joystick must be within 90-100% to trigger a press, or 0-10% to trigger a release.',
 					isVisible: (config) => config.useAsSurface == true,
+				})
+
+				//axis deadzone pos/neg defaults
+				configObj.push({
+					type: 'textinput',
+					id: 'axisDeadzoneNegDefault',
+					label: 'Axis Deadzone Negative Default',
+					width: 3,
+					default: -3,
+					isVisible: (config) => config.useAsSurface == true,
+				})
+				
+				configObj.push({
+					type: 'textinput',
+					id: 'axisDeadzonePosDefault',
+					label: 'Axis Deadzone Positive Default',
+					width: 3,
+					default: 3,
+					isVisible: (config) => config.useAsSurface == true,
+				})
+
+				configObj.push({
+					type: 'static-text',
+					id: 'info-axisdeadzone',
+					width: 6,
+					label: 'Axis Deadzone Defaults',
+					value:
+						'The axis deadzone is the percentage of variance in the axis that will be ignored. This is useful for joysticks that may not fully reach 0% or 100% and will prevent unwanted button presses. These are the default values that will be applied if you have not set them individually per-axis in Actions.',
+					isVisible: (config) => config.useAsSurface == true,
+				})
+
+				//axis range display min/max defaults
+				configObj.push({
+					type: 'textinput',
+					id: 'axisRangeMinDefault',
+					label: 'Axis Range Default Minimum',
+					width: 3,
+					default: -100,
+				})
+
+				configObj.push({
+					type: 'textinput',
+					id: 'axisRangeMaxDefault',
+					label: 'Axis Range Default Maximum',
+					width: 3,
+					default: 100,
+				})
+
+				configObj.push({
+					type: 'static-text',
+					id: 'info-axisrange',
+					width: 6,
+					label: 'Axis Range Display Defaults',
+					value:
+						'The display range is the minimum and maximum values to actually display/use in variables. This is useful for changing the range of an axis to a different value than the default -1 to 1. These are the default values that will be applied if you have not set them individually per-axis in Actions.',
 				})
 			} else {
 				configObj.push({
