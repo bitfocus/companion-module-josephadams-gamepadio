@@ -455,14 +455,14 @@ module.exports = {
 					},
 					{
 						type: 'textinput',
-						label: 'Axis Deadzone Negative',
+						label: 'Axis Deadzone Negative (Negative Value between -1 and 0)',
 						id: 'deadzone_neg',
 						default: '0',
 						useVariables: true,
 					},
 					{
 						type: 'textinput',
-						label: 'Axis Deadzone Positive',
+						label: 'Axis Deadzone Positive (Positive Value between 0 and 1)',
 						id: 'deadzone_pos',
 						default: '0',
 						useVariables: true,
@@ -472,8 +472,8 @@ module.exports = {
 					let deadzone_neg = await self.parseVariablesInString(action.options.deadzone_neg)
 					let deadzone_pos = await self.parseVariablesInString(action.options.deadzone_pos)
 
-					deadzone_neg = parseInt(deadzone_neg) * -1
-					deadzone_pos = parseInt(deadzone_pos)
+					deadzone_neg = parseFloat(deadzone_neg) * -1 //ensure neg is negative number
+					deadzone_pos = parseFloat(deadzone_pos)
 
 					//ensure neg is negative number and pos is positive number
 					if (isNaN(deadzone_neg)) {
@@ -1459,6 +1459,11 @@ module.exports = {
 
 				if (path) {
 					self.loadCustomMapping(path)
+
+					//save it to the config for next time
+					self.config.buttonMapping = 'custom-file'
+					self.config.customFile = path
+					self.saveConfig(self.config)
 				}
 			},
 		}
