@@ -137,11 +137,21 @@ module.exports = {
 
 				for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
 					let buttonId = i //generic
+					let buttonName = i //generic
+					let buttonType = 'Button'
+					let buttonInverted = false
+					let buttonRangeMin = -1
+					let buttonRangeMax = 1
 
 					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === i)
 
 					if (buttonObj) {
 						buttonId = buttonObj.buttonId
+						buttonName = buttonObj.buttonName || buttonObj.buttonIndex
+						buttonType = buttonObj.buttonType == 'trigger' ? 'Trigger' : 'Button'
+						buttonInverted = buttonObj.buttonInverted
+						buttonRangeMin = buttonObj.buttonRangeMin
+						buttonRangeMax = buttonObj.buttonRangeMax
 					}
 
 					variableObj[`button_${buttonId}_pressed`] = self.CONTROLLER.buttons[i].pressed ? 'True' : 'False'
@@ -156,13 +166,11 @@ module.exports = {
 					variableObj[`button_${buttonId}_pct`] = (self.CONTROLLER.buttons[i].pct || '0') + '%'
 					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0) + '%'
 
-					variableObj[`button_${buttonId}_type`] = self.CONTROLLER.buttons[i].buttonType || 'Button'
-
-					let buttonInverted = buttonObj?.buttonInverted || false
+					variableObj[`button_${buttonId}_type`] = buttonType || 'Button'
 					variableObj[`button_${buttonId}_inverted`] = buttonInverted ? 'On' : 'Off'
 
-					variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].val_display || '0'
-					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].val_display || 0)
+					variableObj[`button_${buttonId}_range_display_min`] = buttonRangeMin
+					variableObj[`button_${buttonId}_range_display_max`] = buttonRangeMax
 				}
 
 				for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
