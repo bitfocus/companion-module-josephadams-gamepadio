@@ -185,72 +185,6 @@ module.exports = {
 				}
 			}
 
-			actions.setButtonRangeDisplay = {
-				name: 'Button - Set Button Range Display',
-				description: 'Change the display range of the minimum and maximum values of the button.',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Button',
-						id: 'button',
-						default: self.CHOICES_BUTTONS[0].id,
-						choices: self.CHOICES_BUTTONS,
-					},
-					{
-						type: 'textinput',
-						label: 'Button Range Display Min',
-						id: 'range_min',
-						default: '0',
-						useVariables: true,
-					},
-					{
-						type: 'textinput',
-						label: 'Button Range Display Max',
-						id: 'range_max',
-						default: '100',
-						useVariables: true,
-					},
-				],
-				callback: async (action) => {
-					let range_min = await self.parseVariablesInString(action.options.range_min)
-					let range_max = await self.parseVariablesInString(action.options.range_max)
-	
-					range_min = parseInt(range_min)
-					range_max = parseInt(range_max)
-	
-					//ensure min is less than max
-					if (isNaN(range_min) || isNaN(range_max)) {
-						range_min = 0
-						range_max = 100
-					}
-	
-					if (range_min > range_max) {
-						let temp = range_min
-						range_min = range_max
-						range_max = temp
-					}
-	
-					let button = parseInt(action.options.button)
-					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
-					if (buttonObj) {
-						buttonObj.buttonRangeMin = range_min
-						buttonObj.buttonRangeMax = range_max
-					}
-
-					//if no mapping, create one
-					if (!buttonObj) {
-						self.MAPPING?.buttons.push({ buttonIndex: button, buttonRangeMin: range_min, buttonRangeMax: range_max })
-					}
-						
-					//save the mapping to the config table
-					self.config.MAPPING = self.MAPPING
-					self.config.buttonMapping = 'custom'
-					self.saveConfig(self.config)
-					self.checkFeedbacks()
-					self.checkVariables()
-				},
-			}
-
 			actions.setButtonPressThreshold = {
 				name: 'Surface Settings - Set Button Press Threshold',
 				description: 'Change the percentage of variance in the button that must be met to trigger a button *PRESS*.',
@@ -364,7 +298,7 @@ module.exports = {
 					self.saveConfig(self.config)
 					self.checkFeedbacks()
 					self.checkVariables()
-				}
+				},
 			}
 
 			//invert button press - choice of button
@@ -723,6 +657,77 @@ module.exports = {
 			}
 		}
 
+		actions.setButtonRangeDisplay = {
+			name: 'Button - Set Button Range Display',
+			description: 'Change the display range of the minimum and maximum values of the button.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Button',
+					id: 'button',
+					default: self.CHOICES_BUTTONS[0].id,
+					choices: self.CHOICES_BUTTONS,
+				},
+				{
+					type: 'textinput',
+					label: 'Button Range Display Min',
+					id: 'range_min',
+					default: '0',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Button Range Display Max',
+					id: 'range_max',
+					default: '100',
+					useVariables: true,
+				},
+			],
+			callback: async (action) => {
+				let range_min = await self.parseVariablesInString(action.options.range_min)
+				let range_max = await self.parseVariablesInString(action.options.range_max)
+
+				range_min = parseInt(range_min)
+				range_max = parseInt(range_max)
+
+				//ensure min is less than max
+				if (isNaN(range_min) || isNaN(range_max)) {
+					range_min = 0
+					range_max = 100
+				}
+
+				if (range_min > range_max) {
+					let temp = range_min
+					range_min = range_max
+					range_max = temp
+				}
+
+				let button = parseInt(action.options.button)
+
+				if (self.config.verbose) {
+					self.log('info', `Setting Button Range Display for ${button} to ${range_min} - ${range_max}`)
+				}
+
+				let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
+				if (buttonObj) {
+					buttonObj.buttonRangeMin = range_min
+					buttonObj.buttonRangeMax = range_max
+				}
+
+				//if no mapping, create one
+				if (!buttonObj) {
+					self.MAPPING?.buttons.push({ buttonIndex: button, buttonRangeMin: range_min, buttonRangeMax: range_max })
+				}
+
+				//save the mapping to the config table
+				self.config.MAPPING = self.MAPPING
+				self.config.buttonMapping = 'custom'
+				self.saveConfig(self.config)
+				self.checkFeedbacks()
+				self.checkVariables()
+			},
+		}
+
 		actions.setAxisRangeDisplay = {
 			name: 'Axis - Set Axis Range Display',
 			description: 'Change the display range of the minimum and maximum values of the axes.',
@@ -766,6 +771,12 @@ module.exports = {
 					let temp = range_min
 					range_min = range_max
 					range_max = temp
+				}
+
+				let axis = parseInt(action.options.axis)
+
+				if (self.config.verbose) {
+					self.log('info', `Setting Axis Range Display for ${axis} to ${range_min} - ${range_max}`)
 				}
 
 				let axisObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axis)
@@ -907,7 +918,7 @@ module.exports = {
 				self.checkFeedbacks('controllerLocked')
 
 				//set variable to locked
-				self.setVariableValues({ 'controller_locked': self.LOCKED })
+				self.setVariableValues({ controller_locked: self.LOCKED })
 			},
 		}
 
@@ -1171,7 +1182,7 @@ module.exports = {
 						{ id: 'pressed', label: 'Pressed' },
 						{ id: 'released', label: 'Released' },
 					],
-				}
+				},
 			],
 			callback: async (action) => {
 				let button = parseInt(action.options.button)
@@ -1188,7 +1199,12 @@ module.exports = {
 
 				//if no mapping, create one
 				if (!buttonObj) {
-					self.MAPPING?.buttons.push({ buttonIndex: button, disconnectBehavior: disconnect, disconnectCustomValue: customValue, buttonBehavior: buttonBehavior })
+					self.MAPPING?.buttons.push({
+						buttonIndex: button,
+						disconnectBehavior: disconnect,
+						disconnectCustomValue: customValue,
+						buttonBehavior: buttonBehavior,
+					})
 				}
 
 				//save the mapping to the config table
@@ -1246,7 +1262,11 @@ module.exports = {
 
 				//if no mapping, create one
 				if (!axisObj) {
-					self.MAPPING?.axes.push({ axisIndex: axis, disconnectBehavior: disconnect, disconnectCustomValue: customValue })
+					self.MAPPING?.axes.push({
+						axisIndex: axis,
+						disconnectBehavior: disconnect,
+						disconnectCustomValue: customValue,
+					})
 				}
 
 				//save the mapping to the config table
@@ -1261,7 +1281,8 @@ module.exports = {
 		//set button and axis values to custom value and custom percent
 		actions.setButtonValue = {
 			name: 'Other Settings - Set Button Value',
-			description: 'Set the value of a specific button on the controller. This can be useful if the button is not behaving as expected.',
+			description:
+				'Set the value of a specific button on the controller. This can be useful if the button is not behaving as expected.',
 			options: [
 				{
 					type: 'dropdown',
@@ -1301,14 +1322,15 @@ module.exports = {
 				let pct = val * 100
 
 				if (uuid) {
-					self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct);
+					self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct)
 				}
 			},
 		}
 
 		actions.setButtonPercent = {
 			name: 'Other Settings - Set Button Percent',
-			description: 'Set the percentage of a specific button on the controller. This can be useful if the button is not behaving as expected.',
+			description:
+				'Set the percentage of a specific button on the controller. This can be useful if the button is not behaving as expected.',
 			options: [
 				{
 					type: 'dropdown',
@@ -1348,14 +1370,15 @@ module.exports = {
 				let val = pct / 100
 
 				if (uuid) {
-					self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct);
+					self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct)
 				}
 			},
 		}
 
 		actions.setAxisValue = {
 			name: 'Other Settings - Set Axis Value',
-			description: 'Set the value of a specific axis on the controller. This can be useful if the axis is not behaving as expected.',
+			description:
+				'Set the value of a specific axis on the controller. This can be useful if the axis is not behaving as expected.',
 			options: [
 				{
 					type: 'dropdown',
@@ -1391,14 +1414,15 @@ module.exports = {
 				}
 
 				if (uuid) {
-					self.processAxisEvent(uuid, axisIndex, val);
+					self.processAxisEvent(uuid, axisIndex, val)
 				}
 			},
 		}
 
 		actions.setAxisPercent = {
 			name: 'Other Settings - Set Axis Percent',
-			description: 'Set the percentage of a specific axis on the controller. This can be useful if the axis is not behaving as expected.',
+			description:
+				'Set the percentage of a specific axis on the controller. This can be useful if the axis is not behaving as expected.',
 			options: [
 				{
 					type: 'dropdown',
@@ -1436,7 +1460,7 @@ module.exports = {
 				let val = pct / 100
 
 				if (uuid) {
-					self.processAxisEvent(uuid, axisIndex, val);
+					self.processAxisEvent(uuid, axisIndex, val)
 				}
 			},
 		}
@@ -1455,7 +1479,7 @@ module.exports = {
 				},
 			],
 			callback: async (action) => {
-				let path = await self.parseVariablesInString(action.options.path);
+				let path = await self.parseVariablesInString(action.options.path)
 
 				if (path) {
 					self.loadCustomMapping(path)
@@ -1482,7 +1506,7 @@ module.exports = {
 				},
 			],
 			callback: async (action) => {
-				let path = await self.parseVariablesInString(action.options.path);
+				let path = await self.parseVariablesInString(action.options.path)
 
 				if (path) {
 					self.saveCustomMapping(path)

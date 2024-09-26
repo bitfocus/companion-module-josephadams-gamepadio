@@ -41,16 +41,15 @@ _Configuration Steps:_
 ### Actions
 
 - Surface Settings (Available when using game controller as a Companion surface)
+
   - `Enable/Disable Haptic Feedback (Global/For All Buttons)`: Enables/Disables haptic feedback to the controller.
   - `Set Haptic Properties (Per Button)`: Change the haptic feedback settings for a specific button on the controller.
-  - `Set Button Range Display (Per Button)`: The display range is the minimum and maximum values to actually display/use in variables. This is useful for changing the range of a button to a differernt value than the default 0 to 1.
   - `Set Button Press Threshold (Global/For All Buttons)`: Change the percentage of variance in the button that must be met to trigger a button _PRESS_.
   - `Set Button Release Threshold (Global/For All Buttons)`: Change the percentage of variance in the button that must be met to trigger a button _RELEASE_.
   - `Set Button Type (Per Button)`: Set whether it should behave like a button, or a trigger. Buttons are typically pressed (value of 1) or not pressed (value of 0). Triggers are essentially a one-sided axis that can be pressed some value between 0 and 1, whereas a normal axis can go between -1, 0 (center), and 1. This setting will inform some other actions and variables on how the button should behave. By default, all buttons will behave like Buttons.
   - `Set Button Invert (Per Button)`: Invert the button press behavior for a specific button on the controller.
   - `Set Button Debounce (Global/For All Buttons)`: Change the amount of time in milliseconds that must pass before another press of the same button can be registered again.
   - `Set Haptic Properties (Per Axis)`: Change the haptic feedback settings for a specific axis on the controller.
-  - `Set Axis Range Display (Per Axis)`: The display range is the minimum and maximum values to actually display/use in variables. This is useful for changing the range of an axis to a different value than the default -1 to 1.
   - `Set Axis Deadzones (Per Axis)`: Change the range of the joystick/axis movement (per axis) that is ignored.
   - `Set Axis Movement as Button Presses (Global/For All Axes)`: Allow axis movement to be interpreted as a surface button press.
   - `Set Axis Movement Press Threshold (Global/For All Axes)`: Change the percentage of variance in the axis in order for a button to be _PRESSED_ or _RELEASED_.
@@ -62,7 +61,8 @@ _Configuration Steps:_
   - `Send Haptic Feedback`: Sends a Haptic Feedback command to the Controller.
   - `Set Button Mapping`: Change the button name and id for a specific button on the controller.
   - `Set Axis Mapping`: Change the axis name and id for a specific axis on the controller.
-  
+  - `Set Button Range Display (Per Button)`: The display range is the minimum and maximum values to actually display/use in variables. This is useful for changing the range of a button to a differernt value than the default 0 to 1.
+  - `Set Axis Range Display (Per Axis)`: The display range is the minimum and maximum values to actually display/use in variables. This is useful for changing the range of an axis to a different value than the default -1 to 1.
 - Other Settings:
   - `Behavior on Disconnect`: The behavior on disconnect is what happens when the module loses connection to gamepad-io or the controller you were using. You can choose to reset buttons and axes to 0, hold the last value until reconnected, or set each button/axis to a custom value.
   - `Set Button Value / Percent`: Set the value of a specific button on the controller. This can be useful if the button is not behaving as expected or you don't have a controller right now.

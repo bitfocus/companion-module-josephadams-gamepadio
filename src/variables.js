@@ -47,7 +47,10 @@ module.exports = {
 					variables.push({ variableId: `button_${buttonId}_val`, name: `Button ${buttonName} Raw Value` })
 					variables.push({ variableId: `button_${buttonId}_val_abs`, name: `Button ${buttonName} Raw Value Absolute` })
 					variables.push({ variableId: `button_${buttonId}_val_display`, name: `Button ${buttonName} Display Value` })
-					variables.push({ variableId: `button_${buttonId}_val_display_abs`, name: `Button ${buttonName} Display Value Absolute` })
+					variables.push({
+						variableId: `button_${buttonId}_val_display_abs`,
+						name: `Button ${buttonName} Display Value Absolute`,
+					})
 					variables.push({ variableId: `button_${buttonId}_pct`, name: `Button ${buttonName} Percent` })
 					variables.push({ variableId: `button_${buttonId}_pct_abs`, name: `Button ${buttonName} Percent Absolute` })
 
@@ -55,8 +58,14 @@ module.exports = {
 					variables.push({ variableId: `button_${buttonId}_inverted`, name: `Button ${buttonName} Inverted` })
 
 					//range display
-					variables.push({ variableId: `button_${buttonId}_range_display_min`, name: `Button ${buttonName} Range Display Min` })
-					variables.push({ variableId: `button_${buttonId}_range_display_max`, name: `Button ${buttonName} Range Display Max` })
+					variables.push({
+						variableId: `button_${buttonId}_range_display_min`,
+						name: `Button ${buttonName} Range Display Min`,
+					})
+					variables.push({
+						variableId: `button_${buttonId}_range_display_max`,
+						name: `Button ${buttonName} Range Display Max`,
+					})
 				}
 			}
 
@@ -76,7 +85,10 @@ module.exports = {
 					variables.push({ variableId: `axis_${axisId}_val`, name: `Axis ${axisName} Raw Value` })
 					variables.push({ variableId: `axis_${axisId}_val_abs`, name: `Axis ${axisName} Raw Value Absolute` })
 					variables.push({ variableId: `axis_${axisId}_val_display`, name: `Axis ${axisName} Display Value` })
-					variables.push({ variableId: `axis_${axisId}_val_display_abs`, name: `Axis ${axisName} Display Value Absolute` })
+					variables.push({
+						variableId: `axis_${axisId}_val_display_abs`,
+						name: `Axis ${axisName} Display Value Absolute`,
+					})
 					variables.push({ variableId: `axis_${axisId}_pct`, name: `Axis ${axisName} Percent` })
 					variables.push({ variableId: `axis_${axisId}_pct_abs`, name: `Axis ${axisName} Percent Absolute` })
 
@@ -158,10 +170,10 @@ module.exports = {
 					variableObj[`button_${buttonId}_touched`] = self.CONTROLLER.buttons[i].touched ? 'True' : 'False'
 
 					variableObj[`button_${buttonId}_val`] = self.CONTROLLER.buttons[i].val || '0'
-					variableObj[`button_${buttonId}_val_abs`] = Math.abs(self.CONTROLLER.buttons[i].val || 0)	
-					
+					variableObj[`button_${buttonId}_val_abs`] = Math.abs(self.CONTROLLER.buttons[i].val || 0)
+
 					variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].valDisplay || '0'
-					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].valDisplay || 0)	
+					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].valDisplay || 0)
 
 					variableObj[`button_${buttonId}_pct`] = (self.CONTROLLER.buttons[i].pct || '0') + '%'
 					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0) + '%'
@@ -185,7 +197,7 @@ module.exports = {
 
 					let axisObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === i)
 
-					if (axisObj) { 
+					if (axisObj) {
 						axisId = axisObj.axisId
 						axisName = axisObj.axisName
 						axisType = axisObj.axisType
@@ -194,7 +206,6 @@ module.exports = {
 						axisRangeMax = axisObj.axisRangeMax
 						axisNegDeadzone = axisObj.axisNegDeadzone
 						axisPosDeadzone = axisObj.axisPosDeadzone
-
 					}
 
 					variableObj[`axis_${axisId}_pressed`] = self.CONTROLLER.axes[i].pressed ? 'True' : 'False'

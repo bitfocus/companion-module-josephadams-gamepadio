@@ -1,4 +1,4 @@
-module.exports =  {
+module.exports = {
 	// Button Mapping choices shown in the module config - any choice added here should have a corresonding json file with the same name as the id, in the mappings folder.
 	CHOICES_BUTTONMAPPING: [
 		{ id: undefined, label: '(select a button mapping)' },

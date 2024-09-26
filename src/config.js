@@ -365,7 +365,7 @@ module.exports = {
 					default: -3,
 					isVisible: (config) => config.useAsSurface == true,
 				})
-				
+
 				configObj.push({
 					type: 'textinput',
 					id: 'axisDeadzonePosDefault',

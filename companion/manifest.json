@@ -3,7 +3,7 @@
 	"name": "josephadams-gamepadio",
 	"shortname": "gamepad-io",
 	"description": "",
-	"version": "0.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-josephadams-gamepadio.git",
 	"bugs": "https://github.com/bitfocus/companion-module-josephadams-gamepadio/issues",
