@@ -280,10 +280,11 @@ module.exports = {
 				//we only want to press the button if it's pressed and percent is 100
 				//and if the last button pressed is not the same as this one, or if our debounce timer has expired
 
-				//if the button is inverted, then we need to invert the value
 				if (self.MAPPING) {
 					let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === buttonIndex)
 					//console.log('Mapping for this button', buttonObj)
+
+					//if the button is inverted, then we need to invert the value
 					if (buttonObj?.buttonInverted) {
 						pct = 100 - pct
 						val = 1 - val
@@ -300,10 +301,10 @@ module.exports = {
 						buttonRangeMax = buttonObj.buttonRangeMax
 					}
 
-					let buttonRange = (buttonRangeMax - buttonRangeMin) / 2 //we are going to use the full range, so divide by 2
+					let buttonRange = (buttonRangeMax - buttonRangeMin)
 
 					//now we need to remap the button value to the range value
-					let buttonDisplayValue = Math.round(buttonValue * buttonRange)
+					let buttonDisplayValue = Math.round(buttonValue * buttonRange) + buttonRangeMin
 
 					//set it to the controller object
 					self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue = buttonDisplayValue
