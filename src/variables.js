@@ -175,8 +175,8 @@ module.exports = {
 					variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].valDisplay || '0'
 					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].valDisplay || 0)
 
-					variableObj[`button_${buttonId}_pct`] = (self.CONTROLLER.buttons[i].pct || '0') + '%'
-					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0) + '%'
+					variableObj[`button_${buttonId}_pct`] = (self.CONTROLLER.buttons[i].pct || '0')
+					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0)
 
 					variableObj[`button_${buttonId}_type`] = buttonType || 'Button'
 					variableObj[`button_${buttonId}_inverted`] = buttonInverted ? 'On' : 'Off'
