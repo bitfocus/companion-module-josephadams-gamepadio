@@ -301,7 +301,7 @@ module.exports = {
 						buttonRangeMax = buttonObj.buttonRangeMax
 					}
 
-					let buttonRange = (buttonRangeMax - buttonRangeMin)
+					let buttonRange = buttonRangeMax - buttonRangeMin
 
 					//now we need to remap the button value to the range value
 					let buttonDisplayValue = Math.round(buttonValue * buttonRange) + buttonRangeMin
