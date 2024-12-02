@@ -109,20 +109,26 @@ _Buttons:_
 
 - `button_x_pressed`: Button [x] is Pressed
 - `button_x_touched`: Button [x] is Touched
-- `button_x_val`: Value between 0 to 1 of how much Button [x] is Pressed
+- `button_x_val`: Raw Value between 0 to 1 of how much Button [x] is Pressed
+- `button_x_val_abs`: Absolute Value of Button [x]
+- `button_x_val_display`: Display range of Value if it has been remapped
+- `button_x_val_display_abs`: Absolute Value of Display Range
 - `button_x_pct`: Percentage between 0 to 100 of how much Button [x] is Pressed
+- `button_x_pct_abs`: Absolute value of Percentage
+- `button_x_type`: Whether the button is a Button or a Trigger
+- `button_x_inverted`: If the button has been inverted or not (Inverted Button Values are only affected in the Display Range)
 
 _Axes:_
 
 - `axis_x_pressed`: Axis [x] is Pressed
 - `axis_x_val`: Value of Axis [x] between -1 and 1
 - `axis_x_val_abs`: Absolute Value of Axis [x]
-- `axis_x_val_display`: Display Range of value if it has been remapped
+- `axis_x_val_display`: Display Range of Value if it has been remapped
 - `axis_x_val_display_abs`: The Absolute Value of the Display Range
-- `axis_x_pct`: Percentage of value between -100 and 100
-- `axis_x_pct`: Absolute value of Percentage of value between -100 and 100
+- `axis_x_pct`: Percentage of Value between -100 and 100
+- `axis_x_pct_abs`: Absolute Value of Percentage of Value between -100 and 100
 - `axis_x_direction`: If X, left/right, if Y, up/down. If unknown, negative/positive
-- `axis_x_invert`: If the axis has been inverted or not
+- `axis_x_invert`: If the axis has been inverted or not (Inverted Axis Values are only affected in the Display Range)
 - `axis_x_range_display_min`: The remapped value of the actual axis negative value
 - `axis_x_range_display_max`: The remapped value of the actual axis positive value
 - `axis_x_neg_deadzone`: Axis Deadzone Negative range
