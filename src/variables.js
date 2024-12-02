@@ -140,7 +140,7 @@ module.exports = {
 			let controller = self.CONTROLLER
 
 			if (controller) {
-				variableObj[`controller_locked`] = self.LOCKED ? 'On' : 'Off'
+				variableObj[`controller_locked`] = self.LOCKED ? 'Locked' : 'Unlocked'
 				variableObj[`controller_uuid`] = controller.uuid
 				variableObj[`controller_id`] = controller.id
 				variableObj[`controller_name`] = controller.name
@@ -166,17 +166,17 @@ module.exports = {
 						buttonRangeMax = buttonObj.buttonRangeMax
 					}
 
-					variableObj[`button_${buttonId}_pressed`] = self.CONTROLLER.buttons[i].pressed ? 'True' : 'False'
-					variableObj[`button_${buttonId}_touched`] = self.CONTROLLER.buttons[i].touched ? 'True' : 'False'
+					//variableObj[`button_${buttonId}_pressed`] = self.CONTROLLER.buttons[i].pressed ? 'True' : 'False'
+					//variableObj[`button_${buttonId}_touched`] = self.CONTROLLER.buttons[i].touched ? 'True' : 'False'
 
-					variableObj[`button_${buttonId}_val`] = self.CONTROLLER.buttons[i].val || '0'
-					variableObj[`button_${buttonId}_val_abs`] = Math.abs(self.CONTROLLER.buttons[i].val || 0)
+					//variableObj[`button_${buttonId}_val`] = self.CONTROLLER.buttons[i].val || '0'
+					//variableObj[`button_${buttonId}_val_abs`] = Math.abs(self.CONTROLLER.buttons[i].val || 0)
 
-					variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].valDisplay || '0'
-					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].valDisplay || 0)
+					//variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].valDisplay || '0'
+					//variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].valDisplay || 0)
 
-					variableObj[`button_${buttonId}_pct`] = self.CONTROLLER.buttons[i].pct || '0'
-					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0)
+					//variableObj[`button_${buttonId}_pct`] = self.CONTROLLER.buttons[i].pct || '0'
+					//variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0)
 
 					variableObj[`button_${buttonId}_type`] = buttonType || 'Button'
 					variableObj[`button_${buttonId}_inverted`] = buttonInverted ? 'On' : 'Off'

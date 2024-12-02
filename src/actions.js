@@ -301,51 +301,7 @@ module.exports = {
 				},
 			}
 
-			//invert button press - choice of button
-			actions.invertButtonPress = {
-				name: 'Surface Settings - Invert Button Press',
-				description: 'Invert the button press behavior for a specific button on the controller.',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Button',
-						id: 'button',
-						default: self.CHOICES_BUTTONS[0].id,
-						choices: self.CHOICES_BUTTONS,
-					},
-					{
-						type: 'dropdown',
-						label: 'Invert Button Press',
-						id: 'invert',
-						default: 'Off',
-						choices: [
-							{ id: 'Off', label: 'Off' },
-							{ id: 'On', label: 'On' },
-						],
-					},
-				],
-				callback: async (action) => {
-					let button = parseInt(action.options.button)
-					let invert = action.options.invert == 'On' ? true : false
-
-					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
-					if (buttonObj) {
-						buttonObj.buttonInverted = invert
-					}
-
-					//if no mapping, create one
-					if (!buttonObj) {
-						self.MAPPING?.buttons.push({ buttonIndex: button, buttonInverted: invert })
-					}
-
-					//save the mapping to the config table
-					self.config.MAPPING = self.MAPPING
-					self.config.buttonMapping = 'custom'
-					self.saveConfig(self.config)
-					self.checkFeedbacks()
-					self.checkVariables()
-				},
-			}
+			
 
 			actions.setButtonDebounce = {
 				name: 'Surface Settings - Set Button Debounce',
@@ -657,8 +613,54 @@ module.exports = {
 			}
 		}
 
+		//invert button press - choice of button
+		actions.invertButtonPress = {
+			name: 'Button Settings - Invert Button Press',
+			description: 'Invert the button press behavior for a specific button on the controller.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Button',
+					id: 'button',
+					default: self.CHOICES_BUTTONS[0].id,
+					choices: self.CHOICES_BUTTONS,
+				},
+				{
+					type: 'dropdown',
+					label: 'Invert Button Press',
+					id: 'invert',
+					default: 'Off',
+					choices: [
+						{ id: 'Off', label: 'Off' },
+						{ id: 'On', label: 'On' },
+					],
+				},
+			],
+			callback: async (action) => {
+				let button = parseInt(action.options.button)
+				let invert = action.options.invert == 'On' ? true : false
+
+				let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
+				if (buttonObj) {
+					buttonObj.buttonInverted = invert
+				}
+
+				//if no mapping, create one
+				if (!buttonObj) {
+					self.MAPPING?.buttons.push({ buttonIndex: button, buttonInverted: invert })
+				}
+
+				//save the mapping to the config table
+				self.config.MAPPING = self.MAPPING
+				self.config.buttonMapping = 'custom'
+				self.saveConfig(self.config)
+				self.checkFeedbacks()
+				self.checkVariables()
+			},
+		}
+
 		actions.setButtonRangeDisplay = {
-			name: 'Button - Set Button Range Display',
+			name: 'Button Settings - Set Button Range Display',
 			description: 'Change the display range of the minimum and maximum values of the button.',
 			options: [
 				{
@@ -918,7 +920,7 @@ module.exports = {
 				self.checkFeedbacks('controllerLocked')
 
 				//set variable to locked
-				self.setVariableValues({ controller_locked: self.LOCKED })
+				self.setVariableValues({ controller_locked: self.LOCKED ? 'Locked' : 'Unlocked' })
 			},
 		}
 

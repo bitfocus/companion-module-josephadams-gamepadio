@@ -290,21 +290,19 @@ module.exports = {
 						val = 1 - val
 					}
 
-					let buttonValue = val
+					let buttonValue = Number(val)
 
 					let buttonRangeMin = -1
 					let buttonRangeMax = 1
 
 					if (buttonObj && buttonObj.buttonRangeMin !== undefined && buttonObj.buttonRangeMax !== undefined) {
 						//get the button range values, and remap the real button value to the range value, because that's what we will use in the variable we display
-						buttonRangeMin = buttonObj.buttonRangeMin
-						buttonRangeMax = buttonObj.buttonRangeMax
+						buttonRangeMin = Number(buttonObj.buttonRangeMin)
+						buttonRangeMax = Number(buttonObj.buttonRangeMax)
 					}
 
-					let buttonRange = buttonRangeMax - buttonRangeMin
-
 					//now we need to remap the button value to the range value
-					let buttonDisplayValue = Math.round(buttonValue * buttonRange) + buttonRangeMin
+					let buttonDisplayValue = Math.round(buttonRangeMin + buttonValue * (buttonRangeMax - buttonRangeMin));
 
 					//set it to the controller object
 					self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue = buttonDisplayValue
@@ -315,7 +313,9 @@ module.exports = {
 
 				if (parseInt(pct) >= self.config.buttonPressThreshold) {
 					if (self.LAST_BUTTON_PRESSED !== buttonIndex || self.LAST_BUTTON_PRESSED === -1) {
-						self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=true`)
+						if (self.config.useAsSurface) {
+							self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=true`)
+						}
 
 						//keep track of the last button that was pressed, for debounce purposes
 						self.LAST_BUTTON_PRESSED = buttonIndex
@@ -343,7 +343,9 @@ module.exports = {
 						}
 					}
 				} else if (parseInt(pct) <= self.config.buttonReleaseThreshold) {
-					self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=false`)
+					if (self.config.useAsSurface) {
+						self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=false`)
+					}					
 				}
 
 				//now set the variable
@@ -416,7 +418,7 @@ module.exports = {
 						self.log('info', `Axis ${idx} is in the deadzone. Setting to 0.`)
 					}
 
-					let axisValue = axis
+					let axisValue = Number(axis)
 
 					let axisRangeMin = -1
 					let axisRangeMax = 1
@@ -547,6 +549,7 @@ module.exports = {
 	},
 
 	rebuildChoices: function () {
+		//rebuilds the choices for the controller, buttons, and axes for Companion dropdowns
 		let self = this
 
 		if (self.STATUS.controllers.length > 0) {
@@ -614,7 +617,7 @@ module.exports = {
 			//load the mapping from the stored config
 			self.log('info', 'Loading Custom Button Mapping.')
 			self.MAPPING = self.config.MAPPING
-		} else {
+		} else if (self.config.buttonMapping !== undefined) {
 			self.log('info', `Loading Button Mapping: ${self.config.buttonMapping}`)
 
 			if (self.config.buttonMapping === 'custom-file') {
@@ -631,7 +634,7 @@ module.exports = {
 		}
 
 		//load defaults for any missing values
-		if (self.MAPPING) {
+		//if (self.MAPPING) {
 			//if self.config.buttonRangeMinDefault and self.config.buttonRangeMaxDefault are not set, set them to 0 and 1
 			if (self.config.buttonRangeMinDefault === undefined) {
 				self.config.buttonRangeMinDefault = 0
@@ -756,7 +759,7 @@ module.exports = {
 					}
 				}
 			}
-		}
+		//}
 
 		//now save it to the config so it is stored for next time
 		self.config.MAPPING = self.MAPPING

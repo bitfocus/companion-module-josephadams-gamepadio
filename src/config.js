@@ -343,7 +343,7 @@ module.exports = {
 					label: 'Axis Movement Threshold (%)',
 					width: 4,
 					default: 10,
-					isVisible: (config) => config.useAsSurface == true && config.axisMovementAsButtonPress == true,
+					isVisible: (config) => config.axisMovementAsButtonPress == true,
 				})
 
 				configObj.push({
@@ -353,7 +353,7 @@ module.exports = {
 					label: 'Axis Movement Threshold',
 					value:
 						'The axis movement threshold is the percentage of variance in the axis that must be met to trigger a button <b>PRESS</b> or <b>RELEASE. This is useful for joysticks that may not fully reach 100%. So, for example, if set to 10, the joystick must be within 90-100% to trigger a press, or 0-10% to trigger a release.',
-					isVisible: (config) => config.useAsSurface == true,
+					isVisible: (config) => config.axisMovementAsButtonPress == true,
 				})
 
 				//axis deadzone pos/neg defaults
