@@ -31,8 +31,21 @@ module.exports = {
 				self.log('info', 'Connected to Companion Satellite API')
 			})
 
-			self.SOCKET_COMPANION.on('data', function (data) {
-				self.processCompanionData(data)
+			self.receiveBuffer = ''
+
+			self.SOCKET_COMPANION.on('data', function (chunk) {
+				self.receiveBuffer += chunk.toString()
+
+				let lineEnd
+				while ((lineEnd = self.receiveBuffer.indexOf('\n')) !== -1) {
+					const line = self.receiveBuffer.slice(0, lineEnd).trim() // Extract and trim the line
+					self.receiveBuffer = self.receiveBuffer.slice(lineEnd + 1) // Update the buffer
+					try {
+						self.processCompanionData(line) // Process the line
+					} catch (error) {
+						console.error(error)
+					}
+				}
 			})
 		}
 	},
