@@ -301,8 +301,6 @@ module.exports = {
 				},
 			}
 
-			
-
 			actions.setButtonDebounce = {
 				name: 'Surface Settings - Set Button Debounce',
 				description:
@@ -710,7 +708,10 @@ module.exports = {
 					self.log('info', `Setting Button Range Display for ${button} to ${range_min} - ${range_max}`)
 				}
 
-				let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
+				console.log('self.MAPPING', self.MAPPING)
+
+				let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === button)
+				console.log('buttonObj', buttonObj)
 				if (buttonObj) {
 					buttonObj.buttonRangeMin = range_min
 					buttonObj.buttonRangeMax = range_max
@@ -718,7 +719,8 @@ module.exports = {
 
 				//if no mapping, create one
 				if (!buttonObj) {
-					self.MAPPING?.buttons.push({ buttonIndex: button, buttonRangeMin: range_min, buttonRangeMax: range_max })
+					console.log('no buttonObj, creating one')
+					self.MAPPING.buttons.push({ buttonIndex: button, buttonRangeMin: range_min, buttonRangeMax: range_max })
 				}
 
 				//save the mapping to the config table
@@ -1177,12 +1179,12 @@ module.exports = {
 				},
 				{
 					type: 'dropdown',
-					label: 'Button Behavior',
+					label: 'Button on Surface Behavior',
 					id: 'buttonBehavior',
 					default: 'pressed',
 					choices: [
-						{ id: 'pressed', label: 'Pressed' },
-						{ id: 'released', label: 'Released' },
+						{ id: 'pressed', label: 'Be Pressed' },
+						{ id: 'released', label: 'Be Released' },
 					],
 				},
 			],
@@ -1248,6 +1250,16 @@ module.exports = {
 					useVariables: true,
 					isVisible: (options) => options.disconnect == 'custom',
 				},
+				{
+					type: 'dropdown',
+					label: 'Axis on Surface Behavior',
+					id: 'axisBehavior',
+					default: 'pressed',
+					choices: [
+						{ id: 'pressed', label: 'Be Pressed' },
+						{ id: 'released', label: 'Be Released' },
+					],
+				},
 			],
 			callback: async (action) => {
 				let axis = parseInt(action.options.axis)
@@ -1260,6 +1272,7 @@ module.exports = {
 				if (axisObj) {
 					axisObj.disconnectBehavior = disconnect
 					axisObj.disconnectCustomValue = customValue
+					axisObj.axisBehavior = action.options.axisBehavior
 				}
 
 				//if no mapping, create one
@@ -1268,6 +1281,7 @@ module.exports = {
 						axisIndex: axis,
 						disconnectBehavior: disconnect,
 						disconnectCustomValue: customValue,
+						axisBehavior: action.options.axisBehavior,
 					})
 				}
 
@@ -1303,28 +1317,31 @@ module.exports = {
 			],
 			callback: async (action) => {
 				let uuid = self.CONTROLLER.uuid
-				let buttonIndex = parseInt(button)
-				let pressed = value > 0 ? true : false
-				let touched = value > 0 ? true : false
+				let buttonIndex = parseInt(action.options.button)
+
 				let val = Number(await self.parseVariablesInString(action.options.value))
 
 				//ensure is number and is between 0 and 1
-				if (isNaN(value)) {
+				if (isNaN(val)) {
 					val = 0
 				}
 
-				if (value < 0) {
+				if (val < 0) {
 					val = 0
 				}
 
-				if (value > 1) {
+				if (val > 1) {
 					val = 1
 				}
 
 				let pct = val * 100
 
+				let pressed = val > 0 ? true : false
+				let touched = val > 0 ? true : false
+
 				if (uuid) {
-					self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct)
+					self.log('debug', `Setting Button ${buttonIndex} to ${val} (${pct}%)`)
+					self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct, true)
 				}
 			},
 		}
@@ -1351,9 +1368,8 @@ module.exports = {
 			],
 			callback: async (action) => {
 				let uuid = self.CONTROLLER.uuid
-				let buttonIndex = parseInt(button)
-				let pressed = value > 0 ? true : false
-				let touched = value > 0 ? true : false
+				let buttonIndex = parseInt(action.options.button)
+
 				let pct = Number(await self.parseVariablesInString(action.options.percent))
 
 				//ensure is number and is between 0 and 100
@@ -1371,8 +1387,35 @@ module.exports = {
 
 				let val = pct / 100
 
+				let pressed = pct > 0 ? true : false
+				let touched = pct > 0 ? true : false
+
 				if (uuid) {
-					self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct)
+					self.log('debug', `Setting Button ${buttonIndex} to ${val} (${pct}%)`)
+					self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct, true)
+				}
+			},
+		}
+
+		actions.releaseButtonValueHold = {
+			name: 'Other Settings - Release Button Value Hold',
+			description: 'Release a specific button from holding its value and let the controller handle it normally.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Button',
+					id: 'button',
+					default: self.CHOICES_BUTTONS[0].id,
+					choices: self.CHOICES_BUTTONS,
+				},
+			],
+			callback: async (action) => {
+				let uuid = self.CONTROLLER.uuid
+				let buttonIndex = parseInt(action.options.button)
+
+				if (uuid) {
+					self.log('debug', `Releasing Button Value ${buttonIndex}`)
+					self.processButtonEvent(uuid, buttonIndex, false, false, 0, 0, false)
 				}
 			},
 		}
@@ -1399,7 +1442,7 @@ module.exports = {
 			],
 			callback: async (action) => {
 				let uuid = self.CONTROLLER.uuid
-				let axisIndex = parseInt(axis)
+				let axisIndex = parseInt(action.options.axis)
 				let val = Number(await self.parseVariablesInString(action.options.value))
 
 				//ensure is number and is between -1 and 1
@@ -1415,8 +1458,14 @@ module.exports = {
 					val = 1
 				}
 
+				let pressed = false
+				if (val != 0) {
+					pressed = true
+				}
+
 				if (uuid) {
-					self.processAxisEvent(uuid, axisIndex, val)
+					self.log('debug', `Setting Axis ${axisIndex} to ${val}`)
+					self.processAxisEvent(uuid, axisIndex, pressed, val, true)
 				}
 			},
 		}
@@ -1443,7 +1492,7 @@ module.exports = {
 			],
 			callback: async (action) => {
 				let uuid = self.CONTROLLER.uuid
-				let axisIndex = parseInt(axis)
+				let axisIndex = parseInt(action.options.axis)
 				let pct = Number(await self.parseVariablesInString(action.options.percent))
 
 				//ensure is number and is between -100 and 100
@@ -1461,8 +1510,37 @@ module.exports = {
 
 				let val = pct / 100
 
+				let pressed = false
+				if (val != 0) {
+					pressed = true
+				}
+
 				if (uuid) {
-					self.processAxisEvent(uuid, axisIndex, val)
+					self.log('debug', `Setting Axis ${axisIndex} to ${val} (${pct}%)`)
+					self.processAxisEvent(uuid, axisIndex, pressed, val, true)
+				}
+			},
+		}
+
+		actions.releaseAxisValueHold = {
+			name: 'Other Settings - Release Axis Value Hold',
+			description: 'Release a specific axis from holding its value and let the controller handle it normally.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Axis',
+					id: 'axis',
+					default: self.CHOICES_AXES[0].id,
+					choices: self.CHOICES_AXES,
+				},
+			],
+			callback: async (action) => {
+				let uuid = self.CONTROLLER.uuid
+				let axisIndex = parseInt(action.options.axis)
+
+				if (uuid) {
+					self.log('debug', `Releasing Axis Value ${axisIndex}`)
+					self.processAxisEvent(uuid, axisIndex, false, 0, false)
 				}
 			},
 		}

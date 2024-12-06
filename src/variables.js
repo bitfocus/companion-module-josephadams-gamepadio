@@ -38,7 +38,7 @@ module.exports = {
 					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === j)
 
 					if (buttonObj) {
-						buttonId = buttonObj.buttonId
+						buttonId = buttonObj.buttonId || buttonObj.buttonIndex
 						buttonName = buttonObj.buttonName || buttonObj.buttonIndex
 					}
 
@@ -66,6 +66,9 @@ module.exports = {
 						variableId: `button_${buttonId}_range_display_max`,
 						name: `Button ${buttonName} Range Display Max`,
 					})
+
+					//on hold
+					variables.push({ variableId: `button_${buttonId}_hold`, name: `Button ${buttonName} Value On Hold` })
 				}
 			}
 
@@ -77,8 +80,8 @@ module.exports = {
 					let axisObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === j)
 
 					if (axisObj) {
-						axisId = axisObj.axisId
-						axisName = axisObj.axisName
+						axisId = axisObj.axisId || axisObj.axisIndex
+						axisName = axisObj.axisName || axisObj.axisIndex
 					}
 
 					variables.push({ variableId: `axis_${axisId}_pressed`, name: `Axis ${axisName} Pressed` })
@@ -104,6 +107,9 @@ module.exports = {
 					//deadzones
 					variables.push({ variableId: `axis_${axisId}_neg_deadzone`, name: `Axis ${axisName} Negative Deadzone` })
 					variables.push({ variableId: `axis_${axisId}_pos_deadzone`, name: `Axis ${axisName} Positive Deadzone` })
+
+					//on hold
+					variables.push({ variableId: `axis_${axisId}_hold`, name: `Axis ${axisName} Value On Hold` })
 				}
 			}
 		}
@@ -152,13 +158,13 @@ module.exports = {
 					let buttonName = i //generic
 					let buttonType = 'Button'
 					let buttonInverted = false
-					let buttonRangeMin = -1
+					let buttonRangeMin = 0
 					let buttonRangeMax = 1
 
 					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === i)
 
 					if (buttonObj) {
-						buttonId = buttonObj.buttonId
+						buttonId = buttonObj.buttonId || buttonObj.buttonIndex
 						buttonName = buttonObj.buttonName || buttonObj.buttonIndex
 						buttonType = buttonObj.buttonType == 'trigger' ? 'Trigger' : 'Button'
 						buttonInverted = buttonObj.buttonInverted
@@ -166,23 +172,27 @@ module.exports = {
 						buttonRangeMax = buttonObj.buttonRangeMax
 					}
 
-					//variableObj[`button_${buttonId}_pressed`] = self.CONTROLLER.buttons[i].pressed ? 'True' : 'False'
-					//variableObj[`button_${buttonId}_touched`] = self.CONTROLLER.buttons[i].touched ? 'True' : 'False'
+					variableObj[`button_${buttonId}_pressed`] = self.CONTROLLER.buttons[i].pressed ? 'True' : 'False'
+					variableObj[`button_${buttonId}_touched`] = self.CONTROLLER.buttons[i].touched ? 'True' : 'False'
 
-					//variableObj[`button_${buttonId}_val`] = self.CONTROLLER.buttons[i].val || '0'
-					//variableObj[`button_${buttonId}_val_abs`] = Math.abs(self.CONTROLLER.buttons[i].val || 0)
+					variableObj[`button_${buttonId}_val`] = self.CONTROLLER.buttons[i].val || '0'
+					variableObj[`button_${buttonId}_val_abs`] = Math.abs(self.CONTROLLER.buttons[i].val || 0)
 
-					//variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].valDisplay || '0'
-					//variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(self.CONTROLLER.buttons[i].valDisplay || 0)
+					variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[i].buttonDisplayValue || '0'
+					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(
+						self.CONTROLLER.buttons[i].buttonDisplayValue || 0
+					)
 
-					//variableObj[`button_${buttonId}_pct`] = self.CONTROLLER.buttons[i].pct || '0'
-					//variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0)
+					variableObj[`button_${buttonId}_pct`] = self.CONTROLLER.buttons[i].pct || '0'
+					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(self.CONTROLLER.buttons[i].pct || 0)
 
 					variableObj[`button_${buttonId}_type`] = buttonType || 'Button'
 					variableObj[`button_${buttonId}_inverted`] = buttonInverted ? 'On' : 'Off'
 
 					variableObj[`button_${buttonId}_range_display_min`] = buttonRangeMin
 					variableObj[`button_${buttonId}_range_display_max`] = buttonRangeMax
+
+					variableObj[`button_${buttonId}_hold`] = self.CONTROLLER.buttons[i].buttonHold ? 'True' : 'False'
 				}
 
 				for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
@@ -198,14 +208,14 @@ module.exports = {
 					let axisObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === i)
 
 					if (axisObj) {
-						axisId = axisObj.axisId
-						axisName = axisObj.axisName
-						axisType = axisObj.axisType
-						axisInverted = axisObj.axisInverted
-						axisRangeMin = axisObj.axisRangeMin
-						axisRangeMax = axisObj.axisRangeMax
-						axisNegDeadzone = axisObj.axisNegDeadzone
-						axisPosDeadzone = axisObj.axisPosDeadzone
+						axisId = axisObj.axisId || axisObj.axisIndex
+						axisName = axisObj.axisName || axisObj.axisIndex
+						axisType = axisObj.axisType || ''
+						axisInverted = axisObj.axisInverted || false
+						axisRangeMin = axisObj.axisRangeMin || -1
+						axisRangeMax = axisObj.axisRangeMax || 1
+						axisNegDeadzone = axisObj.axisNegDeadzone || 0
+						axisPosDeadzone = axisObj.axisPosDeadzone || 0
 					}
 
 					variableObj[`axis_${axisId}_pressed`] = self.CONTROLLER.axes[i].pressed ? 'True' : 'False'
@@ -228,6 +238,8 @@ module.exports = {
 
 					variableObj[`axis_${axisId}_neg_deadzone`] = axisNegDeadzone
 					variableObj[`axis_${axisId}_pos_deadzone`] = axisPosDeadzone
+
+					variableObj[`axis_${axisId}_hold`] = self.CONTROLLER.axes[i].axisHold ? 'True' : 'False'
 				}
 			}
 

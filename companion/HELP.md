@@ -64,9 +64,11 @@ _Configuration Steps:_
   - `Set Button Range Display (Per Button)`: The display range is the minimum and maximum values to actually display/use in variables. This is useful for changing the range of a button to a differernt value than the default 0 to 1.
   - `Set Axis Range Display (Per Axis)`: The display range is the minimum and maximum values to actually display/use in variables. This is useful for changing the range of an axis to a different value than the default -1 to 1.
 - Other Settings:
-  - `Behavior on Disconnect`: The behavior on disconnect is what happens when the module loses connection to gamepad-io or the controller you were using. You can choose to reset buttons and axes to 0, hold the last value until reconnected, or set each button/axis to a custom value.
+  - `Button/Axis Behavior on Disconnect`: The behavior on disconnect is what happens when the module loses connection to gamepad-io or the controller you were using. You can choose to reset buttons and axes to 0, hold the last value until reconnected, or set each button/axis to a custom value.
   - `Set Button Value / Percent`: Set the value of a specific button on the controller. This can be useful if the button is not behaving as expected or you don't have a controller right now.
+  - `Release Button Value Hold`: Release the value hold of a specific button on the controller. Returns value control to the controller.
   - `Set Axis Value / Percent`: Set the value of a specific axis on the controller. This can be useful if the axis is not behaving as expected or you don't have a controller right now.
+  - `Release Axis Value Hold`: Release t he value hold of a specific axis on the controller. Returns value control to the controller.
   - `Load / Save Custom Mapping`: Load from disk or Save to disk your custom mapping.
 
 ## Feedbacks
@@ -117,6 +119,7 @@ _Buttons:_
 - `button_x_pct_abs`: Absolute value of Percentage
 - `button_x_type`: Whether the button is a Button or a Trigger
 - `button_x_inverted`: If the button has been inverted or not (Inverted Button Values are only affected in the Display Range)
+- `button_x_hold`: If the value of the button has been set to a specific value by the module or not
 
 _Axes:_
 
@@ -133,6 +136,7 @@ _Axes:_
 - `axis_x_range_display_max`: The remapped value of the actual axis positive value
 - `axis_x_neg_deadzone`: Axis Deadzone Negative range
 - `axis_x_pos_deadzone`: Axis Deadzone Positive range
+- `axis_x_hold`: If the value of the axis has been set to a specific value by the module or not
 
 ## Presets
 

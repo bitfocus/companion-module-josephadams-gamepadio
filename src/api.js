@@ -259,135 +259,199 @@ module.exports = {
 			self.checkFeedbacks()
 			self.checkVariables()
 		} catch (e) {
-			self.log('error', e)
+			self.log('error', String(e))
 		}
 	},
 
-	processButtonEvent: function (uuid, buttonIndex, pressed, touched, val, pct) {
+	processButtonEvent: function (uuid, buttonIndex, pressed, touched, val, pct, holdValue = null) {
 		//processes the data from the button event received from gamepad-io
 		let self = this
 
-		//try {
-		if (self.CONTROLLER) {
-			//ignore the data if we do not have a controller configured
-			//update the button data, but only if it is for the controller we are tracking
-			if (self.CONTROLLER.uuid === uuid && self.LOCKED == false) {
-				self.CONTROLLER.buttons[buttonIndex].pressed = pressed
-				self.CONTROLLER.buttons[buttonIndex].touched = touched
-				self.CONTROLLER.buttons[buttonIndex].val = val
-				self.CONTROLLER.buttons[buttonIndex].pct = pct
+		try {
+			if (self.CONTROLLER) {
+				//ignore the data if we do not have a controller configured
+				//update the button data, but only if it is for the controller we are tracking
+				if (self.CONTROLLER.uuid === uuid && self.LOCKED == false) {
+					//first see if the value on this button is set to hold, and if so, ignore the event unless the holdValue is set to false
+					//also if holdValue is set to true, set that value to the button object
 
-				//we only want to press the button if it's pressed and percent is 100
-				//and if the last button pressed is not the same as this one, or if our debounce timer has expired
+					//if the hold value is null, this function call was generated from the gamepad app and not the "set value" function, so we need to check the button object to know what to do next
 
-				if (self.MAPPING) {
-					let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === buttonIndex)
-					//console.log('Mapping for this button', buttonObj)
+					if (holdValue == null) {
+						let buttonHold = self.CONTROLLER.buttons[buttonIndex].buttonHold
+						if (buttonHold === true) {
+							//if the button is set to hold, then we need to ignore the event
+							if (self.config.verbose) {
+								self.log('debug', `Button ${buttonIndex} is set to hold. Ignoring event.`)
+							}
+							return
+						}
 
-					//if the button is inverted, then we need to invert the value
-					if (buttonObj?.buttonInverted) {
-						pct = 100 - pct
-						val = 1 - val
+						//now set holdValue to false, because we are not processing a "set value" function call
+						holdValue = false
 					}
 
-					let buttonValue = Number(val)
+					//now set the hold value to the button object
+					self.CONTROLLER.buttons[buttonIndex].buttonHold = holdValue
 
-					let buttonRangeMin = -1
-					let buttonRangeMax = 1
+					self.CONTROLLER.buttons[buttonIndex].pressed = pressed
+					self.CONTROLLER.buttons[buttonIndex].touched = touched
+					self.CONTROLLER.buttons[buttonIndex].val = val
+					self.CONTROLLER.buttons[buttonIndex].pct = pct
 
-					if (buttonObj && buttonObj.buttonRangeMin !== undefined && buttonObj.buttonRangeMax !== undefined) {
-						//get the button range values, and remap the real button value to the range value, because that's what we will use in the variable we display
-						buttonRangeMin = Number(buttonObj.buttonRangeMin)
-						buttonRangeMax = Number(buttonObj.buttonRangeMax)
-					}
+					//we only want to press the button if it's pressed and percent is 100
+					//and if the last button pressed is not the same as this one, or if our debounce timer has expired
 
-					//now we need to remap the button value to the range value
-					let buttonDisplayValue = Math.round(buttonRangeMin + buttonValue * (buttonRangeMax - buttonRangeMin));
+					let { buttonDisplayValue, buttonRangeMin, buttonRangeMax } = self.calculateButtonDisplayValue(
+						buttonIndex,
+						val
+					)
 
-					//set it to the controller object
-					self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue = buttonDisplayValue
-				}
+					//the key number is the button index
+					let keyNumber = buttonIndex
 
-				//the key number is the button index
-				let keyNumber = buttonIndex
+					if (parseInt(pct) >= self.config.buttonPressThreshold) {
+						if (self.LAST_BUTTON_PRESSED !== buttonIndex || self.LAST_BUTTON_PRESSED === -1) {
+							if (self.config.useAsSurface) {
+								self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=true`)
+							}
 
-				if (parseInt(pct) >= self.config.buttonPressThreshold) {
-					if (self.LAST_BUTTON_PRESSED !== buttonIndex || self.LAST_BUTTON_PRESSED === -1) {
+							//keep track of the last button that was pressed, for debounce purposes
+							self.LAST_BUTTON_PRESSED = buttonIndex
+
+							//send haptic, if enabled
+							if (self.config.hapticWhenPressed == true) {
+								self.sendHapticFeedback(uuid, 'button', buttonIndex)
+							}
+
+							//start a lil timer for debounce purposes
+							if (self.DEBOUNCE_TIMER !== undefined) {
+								clearTimeout(self.DEBOUNCE_TIMER)
+							}
+
+							self.DEBOUNCE_TIMER = setTimeout(function () {
+								self.LAST_BUTTON_PRESSED = -1
+								self.DEBOUNCE_TIMER = undefined
+							}, self.config.buttonDebounce)
+						} else {
+							if (self.config.verbose) {
+								self.log(
+									'debug',
+									`Button ${buttonIndex} pressed, but debounce timer (${self.config.buttonDebounce}ms) is active.`
+								)
+							}
+						}
+					} else if (parseInt(pct) <= self.config.buttonReleaseThreshold) {
 						if (self.config.useAsSurface) {
-							self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=true`)
-						}
-
-						//keep track of the last button that was pressed, for debounce purposes
-						self.LAST_BUTTON_PRESSED = buttonIndex
-
-						//send haptic, if enabled
-						if (self.config.hapticWhenPressed == true) {
-							self.sendHapticFeedback(uuid, 'button', buttonIndex)
-						}
-
-						//start a lil timer for debounce purposes
-						if (self.DEBOUNCE_TIMER !== undefined) {
-							clearTimeout(self.DEBOUNCE_TIMER)
-						}
-
-						self.DEBOUNCE_TIMER = setTimeout(function () {
-							self.LAST_BUTTON_PRESSED = -1
-							self.DEBOUNCE_TIMER = undefined
-						}, self.config.buttonDebounce)
-					} else {
-						if (self.config.verbose) {
-							self.log(
-								'debug',
-								`Button ${buttonIndex} pressed, but debounce timer (${self.config.buttonDebounce}ms) is active.`
-							)
+							self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=false`)
 						}
 					}
-				} else if (parseInt(pct) <= self.config.buttonReleaseThreshold) {
-					if (self.config.useAsSurface) {
-						self.sendCompanionSatelliteCommand(`KEY-PRESS DEVICEID=${uuid} KEY=${keyNumber} PRESSED=false`)
-					}					
+
+					//now set the variable
+					let buttonId = buttonIndex //generic
+
+					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonIndex)
+
+					if (buttonObj) {
+						buttonId = buttonObj.buttonId || buttonIndex
+					}
+
+					let variableObj = {}
+					variableObj[`button_${buttonId}_pressed`] = pressed ? 'True' : 'False'
+					variableObj[`button_${buttonId}_touched`] = touched ? 'True' : 'False'
+					variableObj[`button_${buttonId}_val`] = val
+					variableObj[`button_${buttonId}_val_abs`] = Math.abs(val)
+					variableObj[`button_${buttonId}_val_display`] = buttonDisplayValue
+					variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(buttonDisplayValue) //absolute value
+					variableObj[`button_${buttonId}_pct`] = pct
+					variableObj[`button_${buttonId}_pct_abs`] = Math.abs(pct)
+					variableObj[`button_${buttonId}_range_display_min`] = buttonRangeMin
+					variableObj[`button_${buttonId}_range_display_max`] = buttonRangeMax
+					variableObj[`button_${buttonId}_hold`] = holdValue ? 'True' : 'False'
+					self.setVariableValues(variableObj)
 				}
 
-				//now set the variable
-				let buttonId = buttonIndex //generic
-
-				let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonIndex)
-
-				if (buttonObj) {
-					buttonId = buttonObj.buttonId
-				}
-
-				let variableObj = {}
-				variableObj[`button_${buttonId}_pressed`] = pressed ? 'True' : 'False'
-				variableObj[`button_${buttonId}_touched`] = touched ? 'True' : 'False'
-				variableObj[`button_${buttonId}_val`] = val
-				variableObj[`button_${buttonId}_val_abs`] = Math.abs(val)
-				variableObj[`button_${buttonId}_val_display`] = self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue
-				variableObj[`button_${buttonId}_val_display_abs`] = Math.abs(
-					self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue
-				) //absolute value
-				variableObj[`button_${buttonId}_pct`] = pct
-				variableObj[`button_${buttonId}_pct_abs`] = Math.abs(pct)
-				self.setVariableValues(variableObj)
+				self.checkFeedbacks()
+				//really only want to call checkVariables when it's a larger dataset to process, as this can get costly over time
+				//self.checkVariables();
 			}
-
-			self.checkFeedbacks()
-			//really only want to call checkVariables when it's a larger dataset to process, as this can get costly over time
-			//self.checkVariables();
+		} catch (e) {
+			self.log('error', String(e))
 		}
-		//}
-		//catch (e) {
-		//		self.log('error', e)
-		//		}
 	},
 
-	processAxisEvent: function (uuid, idx, pressed, axis) {
+	calculateButtonDisplayValue: function (buttonIndex, val) {
+		let self = this
+
+		let buttonDisplayValue = val
+		let buttonRangeMin = 0
+		let buttonRangeMax = 1
+
+		if (self.config.buttonRangeMinDefault !== undefined) {
+			buttonRangeMin = self.config.buttonRangeMinDefault
+		}
+
+		if (self.config.buttonRangeMaxDefault !== undefined) {
+			buttonRangeMax = self.config.buttonRangeMaxDefault
+		}
+
+		if (self.MAPPING) {
+			let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === buttonIndex)
+
+			//if the button is inverted, then we need to invert the value
+			if (buttonObj?.buttonInverted) {
+				pct = 100 - pct
+				val = 1 - val
+			}
+
+			if (buttonObj && buttonObj.buttonRangeMin !== undefined && buttonObj.buttonRangeMax !== undefined) {
+				//get the button range values, and remap the real button value to the range value, because that's what we will use in the variable we display
+				buttonRangeMin = Number(buttonObj.buttonRangeMin)
+				buttonRangeMax = Number(buttonObj.buttonRangeMax)
+			}
+		}
+
+		let buttonValue = Number(val) //ensure it is a number
+
+		//now we need to remap the button value to the range value
+		buttonDisplayValue = Math.round(buttonRangeMin + buttonValue * (buttonRangeMax - buttonRangeMin))
+
+		//set it to the controller object
+		self.CONTROLLER.buttons[buttonIndex].buttonDisplayValue = buttonDisplayValue
+
+		return { buttonDisplayValue, buttonRangeMin, buttonRangeMax }
+	},
+
+	processAxisEvent: function (uuid, idx, pressed, axis, holdValue = null) {
 		let self = this
 
 		try {
 			if (self.CONTROLLER) {
 				//update the axis data, but only if it is for the controller we are tracking
 				if (self.CONTROLLER.uuid === uuid && self.LOCKED == false) {
+					//first see if the value on this button is set to hold, and if so, ignore the event unless the holdValue is set to false
+					//also if holdValue is set to true, set that value to the button object
+
+					//if the hold value is null, this function call was generated from the gamepad app and not the "set value" function, so we need to check the button object to know what to do next
+
+					if (holdValue === null) {
+						console.log('holdValue is null')
+						let axisHold = self.CONTROLLER.axes[idx].axisHold
+						if (axisHold === true) {
+							//if the button is set to hold, then we need to ignore the event
+							if (self.config.verbose) {
+								self.log('debug', `Axis ${idx} is set to hold. Ignoring event.`)
+							}
+							return
+						}
+
+						//now set holdValue to false, because we are not processing a "set value" function call
+						holdValue = false
+					}
+
+					//now set the hold value to the button object
+					self.CONTROLLER.axes[idx].axisHold = holdValue
+
 					self.CONTROLLER.axes[idx].pressed = pressed
 					self.CONTROLLER.axes[idx].axis = axis
 
@@ -400,13 +464,13 @@ module.exports = {
 					//the key number is the axis index + the number of buttons (offset)
 					//if the axis is negative, it's one key, if it's positive, it's the other key
 
-					let negSensitivity = 0.1 //default
+					let negSensitivity = -0.1 //default
 					let posSensitivity = 0.1 //default
 
 					//get the deadzones from the button mapping
 					if (axisObj) {
-						negSensitivity = axisObj.axisNegDeadzone
-						posSensitivity = axisObj.axisPosDeadzone
+						negSensitivity = Number(axisObj.axisNegDeadzone)
+						posSensitivity = Number(axisObj.axisPosDeadzone)
 					}
 
 					let axisDeadzoneActive = false
@@ -420,59 +484,46 @@ module.exports = {
 
 					let axisValue = Number(axis)
 
-					let axisRangeMin = -1
-					let axisRangeMax = 1
-
-					//if we are inverting the axis, then we need to invert the value
-					if (axisObj) {
-						//console.log('Axis Mapping Object', axisObj)
-						if (axisObj?.axisInverted) {
-							axisValue = axisValue * -1
-						}
-
-						//get the axis range values, and remap the real axis value to the range value, because that's what we will use in the variable we display
-						axisRangeMin = axisObj.axisRangeMin
-						axisRangeMax = axisObj.axisRangeMax
-					}
-
-					//calculate the percent, the axis is a float from -1.0 to 1.0 and the percent can be -100% to 100%
-					axisPct = Math.round(axisValue * 100)
-
-					let axisRange = (axisRangeMax - axisRangeMin) / 2 //we are going to use the full range, so divide by 2
-
-					//now we need to remap the axis value to the range value
-					let axisDisplayValue = Math.round(axisValue * axisRange) // + axisRangeMin;
-
-					//set it to the controller object
-					self.CONTROLLER.axes[idx].axisDisplayValue = axisDisplayValue
+					let { axisDisplayValue, axisRangeMin, axisRangeMax } = self.calculateAxisDisplayValue(idx, axisValue)
 
 					//now check the direction
 					let axisDirection = 'Center'
 
 					if (axisValue < 0) {
+						axisDirection = 'Negative'
+
 						//get the axis type from the button mapping definition and if it is X, use "left, it is Y, use "up"
 						if (self.MAPPING) {
 							let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
-							if (axisObj?.axisType) {
-								axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'Left' : 'Up'
+							if (axisObj !== undefined) {
+								if (axisObj?.axisType !== undefined) {
+									axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'Left' : 'Up'
+								}
 							}
-						} else {
-							axisDirection = 'Negative'
 						}
 					} else if (axisValue > 0) {
+						axisDirection = 'Positive'
+
 						//get the axis type from the button mapping definition and if it is X, use "right, it is Y, use "down"
 						if (self.MAPPING) {
 							let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
-							axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'Right' : 'Down'
-						} else {
-							axisDirection = 'Positive'
+							if (axisObj !== undefined) {
+								if (axisObj?.axisType !== undefined) {
+									axisDirection = axisObj.axisType.toLowerCase() === 'x' ? 'Right' : 'Down'
+								}
+							}
 						}
 					} else if (axisValue === 0) {
+						axisDirection = 'Neutral'
+
 						if (self.MAPPING) {
 							let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === idx)
-							axisDirection = 'Center'
-						} else {
-							axisDirection = 'Neutral'
+
+							if (axisObj !== undefined) {
+								if (axisObj?.axisType !== undefined) {
+									axisDirection = 'Center'
+								}
+							}
 						}
 					}
 
@@ -482,7 +533,7 @@ module.exports = {
 					let axisId = idx //generic or otherwise unknown
 
 					if (axisObj) {
-						axisId = axisObj.axisId
+						axisId = axisObj.axisId || idx
 					}
 
 					let variableObj = {}
@@ -494,6 +545,9 @@ module.exports = {
 					variableObj[`axis_${axisId}_pct`] = axisPct + '%'
 					variableObj[`axis_${axisId}_pct_abs`] = Math.abs(axisPct) + '%'
 					variableObj[`axis_${axisId}_direction`] = axisDirection
+					variableObj[`axis_${axisId}_range_display_min`] = axisRangeMin
+					variableObj[`axis_${axisId}_range_display_max`] = axisRangeMax
+					variableObj[`axis_${axisId}_hold`] = holdValue ? 'True' : 'False'
 
 					self.setVariableValues(variableObj)
 
@@ -544,13 +598,52 @@ module.exports = {
 				self.checkFeedbacks()
 			}
 		} catch (e) {
-			self.log('error', e)
+			self.log('error', String(e))
 		}
+	},
+
+	calculateAxisDisplayValue: function (axisIndex, axisValue) {
+		let self = this
+
+		let axisRangeMin = -1
+		let axisRangeMax = 1
+
+		if (self.MAPPING) {
+			axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === axisIndex)
+		}
+
+		//if we are inverting the axis, then we need to invert the value
+		if (axisObj) {
+			if (axisObj?.axisInverted) {
+				axisValue = axisValue * -1
+			}
+
+			//get the axis range values, and remap the real axis value to the range value, because that's what we will use in the variable we display
+			axisRangeMin = axisObj.axisRangeMin
+			axisRangeMax = axisObj.axisRangeMax
+		}
+
+		//calculate the percent, the axis is a float from -1.0 to 1.0 and the percent can be -100% to 100%
+		axisPct = Math.round(axisValue * 100)
+
+		let axisRange = (axisRangeMax - axisRangeMin) / 2 //we are going to use the full range, so divide by 2
+
+		//now we need to remap the axis value to the range value
+		let axisDisplayValue = Math.round(axisValue * axisRange) // + axisRangeMin;
+
+		//set it to the controller object
+		self.CONTROLLER.axes[axisIndex].axisDisplayValue = axisDisplayValue
+
+		return { axisDisplayValue, axisRangeMin, axisRangeMax }
 	},
 
 	rebuildChoices: function () {
 		//rebuilds the choices for the controller, buttons, and axes for Companion dropdowns
 		let self = this
+
+		if (self.config.verbose) {
+			self.log('debug', 'Rebuilding Choices for Controller, Buttons, and Axes.')
+		}
 
 		if (self.STATUS.controllers.length > 0) {
 			self.CHOICES_CONTROLLERS = []
@@ -576,30 +669,38 @@ module.exports = {
 				self.CHOICES_BUTTONS = []
 
 				for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
+					let label = 'Button ' + i
+
 					if (self.MAPPING) {
 						let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === i)
-						self.CHOICES_BUTTONS.push({ id: i, label: buttonObj.buttonName })
-					} else {
-						self.CHOICES_BUTTONS.push({ id: i, label: 'Button ' + i })
+						if (buttonObj) {
+							label = buttonObj.buttonName || 'Button ' + i
+						}
 					}
+
+					self.CHOICES_BUTTONS.push({ id: i, label: label })
 				}
 			} else {
-				self.CHOICES_BUTTONS = [{ id: '0', label: 'aint got no buttons' }]
+				self.CHOICES_BUTTONS = [{ id: '0', label: 'No Buttons Available' }]
 			}
 
 			if (self.CONTROLLER.axes.length > 0) {
 				self.CHOICES_AXES = []
 
 				for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
+					let label = 'Axis ' + i
+
 					if (self.MAPPING) {
 						let axisObj = self.MAPPING.axes.find((obj) => obj.axisIndex === i)
-						self.CHOICES_AXES.push({ id: i.toString(), label: axisObj.axisName })
-					} else {
-						self.CHOICES_AXES.push({ id: i.toString(), label: 'Axis ' + i })
+						if (axisObj) {
+							label = axisObj.axisName || 'Axis ' + i
+						}
 					}
+
+					self.CHOICES_AXES.push({ id: i.toString(), label: label })
 				}
 			} else {
-				self.CHOICES_AXES = [{ id: '0', label: 'Axis 1' }]
+				self.CHOICES_AXES = [{ id: '0', label: 'No Axes Available' }]
 			}
 		}
 	},
@@ -611,12 +712,21 @@ module.exports = {
 		if (self.config.buttonMapping == 'generic') {
 			//no need to do anything
 			self.log('info', 'Loading Generic Button Mapping.')
-			self.MAPPING = undefined
+			self.MAPPING = {
+				buttons: [],
+				axes: [],
+			}
 			return
 		} else if (self.config.buttonMapping == 'custom') {
 			//load the mapping from the stored config
 			self.log('info', 'Loading Custom Button Mapping.')
 			self.MAPPING = self.config.MAPPING
+			if (self.MAPPING == undefined) {
+				self.MAPPING = {
+					buttons: [],
+					axes: [],
+				}
+			}
 		} else if (self.config.buttonMapping !== undefined) {
 			self.log('info', `Loading Button Mapping: ${self.config.buttonMapping}`)
 
@@ -627,7 +737,10 @@ module.exports = {
 					self.MAPPING = require(`./mappings/${self.config.buttonMapping}.json`)
 				} catch (err) {
 					self.log('error', `Error loading button mapping: ${err}`)
-					self.MAPPING = undefined
+					self.MAPPING = {
+						buttons: [],
+						axes: [],
+					}
 					self.config.buttonMapping = 'generic'
 				}
 			}
@@ -635,130 +748,130 @@ module.exports = {
 
 		//load defaults for any missing values
 		//if (self.MAPPING) {
-			//if self.config.buttonRangeMinDefault and self.config.buttonRangeMaxDefault are not set, set them to 0 and 1
-			if (self.config.buttonRangeMinDefault === undefined) {
-				self.config.buttonRangeMinDefault = 0
-			}
-			if (self.config.buttonRangeMaxDefault === undefined) {
-				self.config.buttonRangeMaxDefault = 1
-			}
+		//if self.config.buttonRangeMinDefault and self.config.buttonRangeMaxDefault are not set, set them to 0 and 1
+		if (self.config.buttonRangeMinDefault === undefined) {
+			self.config.buttonRangeMinDefault = 0
+		}
+		if (self.config.buttonRangeMaxDefault === undefined) {
+			self.config.buttonRangeMaxDefault = 1
+		}
 
-			//loop through each button and assign defaults for disconnectBehavior, buttonRangeMin/Max, buttonType, buttonInverted, hapticType, hapticParams
-			for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
-				let buttonObj = self.CONTROLLER.buttons[i]
-				let buttonMappingObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonObj.buttonIndex)
+		//loop through each button and assign defaults for disconnectBehavior, buttonRangeMin/Max, buttonType, buttonInverted, hapticType, hapticParams
+		for (let i = 0; i < self.CONTROLLER.buttons.length; i++) {
+			let buttonObj = self.CONTROLLER.buttons[i]
+			let buttonMappingObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonObj.buttonIndex)
 
-				if (buttonMappingObj) {
-					if (buttonMappingObj.disconnectBehavior === undefined) {
-						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing disconnectBehavior. Setting to reset.`)
-						buttonMappingObj.disconnectBehavior = 'reset'
-					}
-					if (buttonMappingObj.buttonRangeMin === undefined) {
-						self.logVerbose(
-							'info',
-							`Button ${buttonObj.buttonIndex} missing buttonRangeMin. Setting to Config default of ${self.config.buttonRangeMinDefault}.`
-						)
-						buttonMappingObj.buttonRangeMin = self.config.buttonRangeMinDefault
-					}
-					if (buttonMappingObj.buttonRangeMax === undefined) {
-						self.logVerbose(
-							'info',
-							`Button ${buttonObj.buttonIndex} missing buttonRangeMax. Setting to Config default of ${self.config.buttonRangeMaxDefault}.`
-						)
-						buttonMappingObj.buttonRangeMax = self.config.buttonRangeMaxDefault
-					}
-					if (buttonMappingObj.buttonType === undefined) {
-						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing buttonType. Setting to type: button.`)
-						buttonMappingObj.buttonType = 'button'
-					}
-					if (buttonMappingObj.buttonInverted === undefined) {
-						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing buttonInverted. Setting to false.`)
-						buttonMappingObj.buttonInverted = false
-					}
-					if (buttonMappingObj.hapticType === undefined) {
-						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing hapticType. Setting to dual-rumble.`)
-						buttonMappingObj.hapticType = 'dual-rumble'
-					}
-					if (buttonMappingObj.hapticParams === undefined) {
-						self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing hapticParams. Setting to default values.`)
-						buttonMappingObj.hapticParams = {
-							duration: 0.1,
-							startDelay: 0,
-							strongMagnitude: 1.0,
-							weakMagnitude: 0.5,
-						}
+			if (buttonMappingObj) {
+				if (buttonMappingObj.disconnectBehavior === undefined) {
+					self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing disconnectBehavior. Setting to reset.`)
+					buttonMappingObj.disconnectBehavior = 'reset'
+				}
+				if (buttonMappingObj.buttonRangeMin === undefined) {
+					self.logVerbose(
+						'info',
+						`Button ${buttonObj.buttonIndex} missing buttonRangeMin. Setting to Config default of ${self.config.buttonRangeMinDefault}.`
+					)
+					buttonMappingObj.buttonRangeMin = self.config.buttonRangeMinDefault
+				}
+				if (buttonMappingObj.buttonRangeMax === undefined) {
+					self.logVerbose(
+						'info',
+						`Button ${buttonObj.buttonIndex} missing buttonRangeMax. Setting to Config default of ${self.config.buttonRangeMaxDefault}.`
+					)
+					buttonMappingObj.buttonRangeMax = self.config.buttonRangeMaxDefault
+				}
+				if (buttonMappingObj.buttonType === undefined) {
+					self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing buttonType. Setting to type: button.`)
+					buttonMappingObj.buttonType = 'button'
+				}
+				if (buttonMappingObj.buttonInverted === undefined) {
+					self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing buttonInverted. Setting to false.`)
+					buttonMappingObj.buttonInverted = false
+				}
+				if (buttonMappingObj.hapticType === undefined) {
+					self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing hapticType. Setting to dual-rumble.`)
+					buttonMappingObj.hapticType = 'dual-rumble'
+				}
+				if (buttonMappingObj.hapticParams === undefined) {
+					self.logVerbose('info', `Button ${buttonObj.buttonIndex} missing hapticParams. Setting to default values.`)
+					buttonMappingObj.hapticParams = {
+						duration: 0.1,
+						startDelay: 0,
+						strongMagnitude: 1.0,
+						weakMagnitude: 0.5,
 					}
 				}
 			}
+		}
 
-			//if self.config.axisDeadzoneNegDefault and self.config.axisDeadzonePosDefault are not set, set them to 0.1
-			if (self.config.axisDeadzoneNegDefault === undefined) {
-				self.config.axisDeadzoneNegDefault = -0.1
-			}
-			if (self.config.axisDeadzonePosDefault === undefined) {
-				self.config.axisDeadzonePosDefault = 0.1
-			}
+		//if self.config.axisDeadzoneNegDefault and self.config.axisDeadzonePosDefault are not set, set them to 0.1
+		if (self.config.axisDeadzoneNegDefault === undefined) {
+			self.config.axisDeadzoneNegDefault = -0.1
+		}
+		if (self.config.axisDeadzonePosDefault === undefined) {
+			self.config.axisDeadzonePosDefault = 0.1
+		}
 
-			//if self.config.axisRangeMinDefault and self.config.axisRangeMaxDefault are not set, set them to -1 and 1
-			if (self.config.axisRangeMinDefault === undefined) {
-				self.config.axisRangeMinDefault = -1
-			}
-			if (self.config.axisRangeMaxDefault === undefined) {
-				self.config.axisRangeMaxDefault = 1
-			}
+		//if self.config.axisRangeMinDefault and self.config.axisRangeMaxDefault are not set, set them to -1 and 1
+		if (self.config.axisRangeMinDefault === undefined) {
+			self.config.axisRangeMinDefault = -1
+		}
+		if (self.config.axisRangeMaxDefault === undefined) {
+			self.config.axisRangeMaxDefault = 1
+		}
 
-			//loop through each axis and assign defaults for axisInverted, axisRangeMin/Max, axisType, axisInverted
-			for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
-				let axisObj = self.CONTROLLER.axes[i]
-				let axisMappingObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axisObj.axisIndex)
-				console.log('Axis Mapping Object Loading', axisMappingObj)
-				if (axisMappingObj) {
-					if (axisMappingObj.disconnectBehavior === undefined) {
-						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing disconnectBehavior. Setting to reset.`)
-						axisMappingObj.disconnectBehavior = 'reset'
-					}
-					if (axisMappingObj.axisNegDeadzone === undefined) {
-						self.logVerbose(
-							'info',
-							`Axis ${axisObj.axisIndex} missing axisNegDeadzone. Setting to default of ${self.config.axisDeadzoneNegDefault}.`
-						)
-						axisMappingObj.axisNegDeadzone = self.config.axisDeadzoneNegDefault
-					}
-					if (axisMappingObj.axisPosDeadzone === undefined) {
-						self.logVerbose(
-							'info',
-							`Axis ${axisObj.axisIndex} missing axisPosDeadzone. Setting to default of ${self.config.axisDeadzonePosDefault}.`
-						)
-						axisMappingObj.axisPosDeadzone = self.config.axisDeadzonePosDefault
-					}
-					if (axisMappingObj.axisInverted === undefined) {
-						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisInverted. Setting to false.`)
-						axisMappingObj.axisInverted = false
-					}
-					if (axisMappingObj.axisRangeMin === undefined) {
-						self.logVerbose(
-							'info',
-							`Axis ${axisObj.axisIndex} missing axisRangeMin. Setting to Config default of ${self.config.axisRangeMinDefault}.`
-						)
-						axisMappingObj.axisRangeMin = self.config.axisRangeMinDefault
-					}
-					if (axisMappingObj.axisRangeMax === undefined) {
-						self.logVerbose(
-							'info',
-							`Axis ${axisObj.axisIndex} missing axisRangeMax. Setting to Config default of ${self.config.axisRangeMaxDefault}.`
-						)
-						axisMappingObj.axisRangeMax = self.config.axisRangeMaxDefault
-					}
-					if (axisMappingObj.axisType === undefined) {
-						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisType. Setting to type: x.`)
-						axisMappingObj.axisType = 'x'
-					}
-					if (axisMappingObj.axisInverted === undefined) {
-						self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisInverted. Setting to false.`)
-						axisMappingObj.axisInverted = false
-					}
+		//loop through each axis and assign defaults for axisInverted, axisRangeMin/Max, axisType, axisInverted
+		for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
+			let axisObj = self.CONTROLLER.axes[i]
+			let axisMappingObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axisObj.axisIndex)
+
+			if (axisMappingObj) {
+				if (axisMappingObj.disconnectBehavior === undefined) {
+					self.logVerbose('info', `Axis ${axisObj.axisIndex} missing disconnectBehavior. Setting to reset.`)
+					axisMappingObj.disconnectBehavior = 'reset'
+				}
+				if (axisMappingObj.axisNegDeadzone === undefined) {
+					self.logVerbose(
+						'info',
+						`Axis ${axisObj.axisIndex} missing axisNegDeadzone. Setting to default of ${self.config.axisDeadzoneNegDefault}.`
+					)
+					axisMappingObj.axisNegDeadzone = self.config.axisDeadzoneNegDefault
+				}
+				if (axisMappingObj.axisPosDeadzone === undefined) {
+					self.logVerbose(
+						'info',
+						`Axis ${axisObj.axisIndex} missing axisPosDeadzone. Setting to default of ${self.config.axisDeadzonePosDefault}.`
+					)
+					axisMappingObj.axisPosDeadzone = self.config.axisDeadzonePosDefault
+				}
+				if (axisMappingObj.axisInverted === undefined) {
+					self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisInverted. Setting to false.`)
+					axisMappingObj.axisInverted = false
+				}
+				if (axisMappingObj.axisRangeMin === undefined) {
+					self.logVerbose(
+						'info',
+						`Axis ${axisObj.axisIndex} missing axisRangeMin. Setting to Config default of ${self.config.axisRangeMinDefault}.`
+					)
+					axisMappingObj.axisRangeMin = self.config.axisRangeMinDefault
+				}
+				if (axisMappingObj.axisRangeMax === undefined) {
+					self.logVerbose(
+						'info',
+						`Axis ${axisObj.axisIndex} missing axisRangeMax. Setting to Config default of ${self.config.axisRangeMaxDefault}.`
+					)
+					axisMappingObj.axisRangeMax = self.config.axisRangeMaxDefault
+				}
+				if (axisMappingObj.axisType === undefined) {
+					self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisType. Setting to type: x.`)
+					axisMappingObj.axisType = 'x'
+				}
+				if (axisMappingObj.axisInverted === undefined) {
+					self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisInverted. Setting to false.`)
+					axisMappingObj.axisInverted = false
 				}
 			}
+		}
 		//}
 
 		//now save it to the config so it is stored for next time
@@ -918,7 +1031,7 @@ module.exports = {
 					//do nothing
 				} else if (buttonMappingObj && buttonMappingObj.disconnectBehavior === 'custom') {
 					let disconnectCustomValue = buttonMappingObj.disconnectCustomValue
-					let buttonBehavior = buttonMappingObj.disconnectCustomBehavior
+					let buttonBehavior = buttonMappingObj.buttonBehavior
 
 					if (buttonBehavior === 'released') {
 						self.CONTROLLER.buttons[i].pressed = false
@@ -939,23 +1052,30 @@ module.exports = {
 					self.CONTROLLER.buttons[i].val = disconnectCustomValue
 					self.CONTROLLER.buttons[i].pct = disconnectCustomValue * 100
 				}
+
+				let { buttonDisplayValue, buttonRangeMin, buttonRangeMax } = self.calculateButtonDisplayValue(
+					i,
+					self.CONTROLLER.buttons[i].val
+				)
+				self.CONTROLLER.buttons[i].buttonDisplayValue = buttonDisplayValue
+				self.checkVariables()
 			}
 
 			for (let i = 0; i < self.CONTROLLER.axes.length; i++) {
 				let axisObj = self.CONTROLLER.axes[i]
 				let axisMappingObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axisObj.axisIndex)
-				if (axisMappingObj && axisMappingObj.disconnectBehavior === 'reset') {
+				if (axisMappingObj && axisMappingObj?.disconnectBehavior === 'reset') {
 					self.CONTROLLER.axes[i].pressed = false
 					self.CONTROLLER.axes[i].axis = 0
 
 					self.sendCompanionSatelliteCommand(
 						`KEY-PRESS DEVICEID=${controller.uuid} KEY=${axisObj.axisIndex} PRESSED=false`
 					)
-				} else if (axisMappingObj && axisMappingObj.disconnectBehavior === 'hold') {
-					//do nothing
-				} else if (axisMappingObj && axisMappingObj.disconnectBehavior === 'custom') {
+				} else if (axisMappingObj && axisMappingObj?.disconnectBehavior === 'hold') {
+					//do nothing because that's basically the default behavior
+				} else if (axisMappingObj && axisMappingObj?.disconnectBehavior === 'custom') {
 					let disconnectCustomValue = axisMappingObj.disconnectCustomValue
-					let axisBehavior = axisMappingObj.disconnectCustomBehavior
+					let axisBehavior = axisMappingObj.axisBehavior
 
 					if (axisBehavior === 'released') {
 						self.CONTROLLER.axes[i].pressed = false
@@ -973,6 +1093,13 @@ module.exports = {
 
 					self.CONTROLLER.axes[i].axis = disconnectCustomValue
 				}
+
+				let { axisDisplayValue, axisRangeMin, axisRangeMax } = self.calculateAxisDisplayValue(
+					i,
+					self.CONTROLLER.axes[i].axis
+				)
+				self.CONTROLLER.axes[i].axisDisplayValue = axisDisplayValue
+				self.checkVariables()
 			}
 		}
 	},
