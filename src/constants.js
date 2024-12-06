@@ -10,7 +10,10 @@ module.exports = {
 
 	LAST_BUTTON_PRESSED: -1,
 	DEBOUNCE_TIMER: undefined,
-	MAPPING: undefined,
+	MAPPING: {
+		axes: [],
+		buttons: [],
+	},
 
 	RECONNECT_INTERVAL: undefined,
 

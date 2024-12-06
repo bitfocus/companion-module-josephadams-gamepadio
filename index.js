@@ -35,6 +35,8 @@ class gamepadioInstance extends InstanceBase {
 			controlStatus: false,
 			controllers: [],
 		}
+
+		this.receiveBuffer = ''
 	}
 
 	async destroy() {
@@ -52,8 +54,15 @@ class gamepadioInstance extends InstanceBase {
 		}
 		this.LAST_BUTTON_PRESSED = -1
 		this.DEBOUNCE_TIMER = undefined
-		this.MAPPING = undefined
+		this.MAPPING = {
+			axes: [],
+			buttons: [],
+		}
 		this.RECONNECT_INTERVAL = undefined
+
+		this.LOCKED = false
+
+		this.receiveBuffer = ''
 	}
 
 	async init(config) {
