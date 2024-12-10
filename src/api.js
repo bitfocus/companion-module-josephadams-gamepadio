@@ -310,6 +310,19 @@ module.exports = {
 					//the key number is the button index
 					let keyNumber = buttonIndex
 
+					//check to see if the percentage is inverted on the button mapping
+					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonIndex)
+
+					if (buttonObj) {
+						buttonInverted = buttonObj.buttonInverted
+						if (buttonInverted) {
+							//check to see if the percentage is inverted, otherwise ignore
+							if (buttonObj.invertPercentage) {
+								pct = 100 - pct
+							}							
+						}
+					}
+
 					if (parseInt(pct) >= self.config.buttonPressThreshold) {
 						if (self.LAST_BUTTON_PRESSED !== buttonIndex || self.LAST_BUTTON_PRESSED === -1) {
 							if (self.config.useAsSurface) {
@@ -349,8 +362,6 @@ module.exports = {
 
 					//now set the variable
 					let buttonId = buttonIndex //generic
-
-					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === buttonIndex)
 
 					if (buttonObj) {
 						buttonId = buttonObj.buttonId || buttonIndex
@@ -398,9 +409,9 @@ module.exports = {
 		if (self.MAPPING) {
 			let buttonObj = self.MAPPING.buttons.find((obj) => obj.buttonIndex === buttonIndex)
 
+			console.log(buttonObj)
 			//if the button is inverted, then we need to invert the value
 			if (buttonObj?.buttonInverted) {
-				pct = 100 - pct
 				val = 1 - val
 			}
 
@@ -435,7 +446,6 @@ module.exports = {
 					//if the hold value is null, this function call was generated from the gamepad app and not the "set value" function, so we need to check the button object to know what to do next
 
 					if (holdValue === null) {
-						console.log('holdValue is null')
 						let axisHold = self.CONTROLLER.axes[idx].axisHold
 						if (axisHold === true) {
 							//if the button is set to hold, then we need to ignore the event
@@ -534,6 +544,17 @@ module.exports = {
 
 					if (axisObj) {
 						axisId = axisObj.axisId || idx
+					}
+
+					//check to see if the percentage is inverted on the button mapping
+					if (axisObj) {
+						axisInverted = axisObj.axisInverted
+						if (axisInverted) {
+							//check to see if the percentage is inverted, otherwise ignore
+							if (axisObj.invertPercentage) {
+								axisPct = 100 - axisPct
+							}							
+						}
 					}
 
 					let variableObj = {}
@@ -866,10 +887,6 @@ module.exports = {
 					self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisType. Setting to type: x.`)
 					axisMappingObj.axisType = 'x'
 				}
-				if (axisMappingObj.axisInverted === undefined) {
-					self.logVerbose('info', `Axis ${axisObj.axisIndex} missing axisInverted. Setting to false.`)
-					axisMappingObj.axisInverted = false
-				}
 			}
 		}
 		//}
@@ -896,6 +913,8 @@ module.exports = {
 
 	saveCustomMapping: function (path) {
 		let self = this
+
+		let fs = require('fs')
 
 		try {
 			self.log('info', `Saving Custom Button Mapping to: ${path}`)

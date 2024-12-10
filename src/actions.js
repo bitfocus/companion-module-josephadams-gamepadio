@@ -633,20 +633,55 @@ module.exports = {
 						{ id: 'On', label: 'On' },
 					],
 				},
+				{
+					type: 'checkbox',
+					label: 'Invert Affects Button Press Percentage',
+					description: 'If enabled, the button press percentage will be inverted as well, which will affect how the surface behaves. If disabled, only the display value will be affected.',
+					id: 'invertPercentage',
+					default: false,
+					isVisible: (options) => options.invert == 'On',
+				}
 			],
 			callback: async (action) => {
+				let uuid = self.CONTROLLER.uuid
+
 				let button = parseInt(action.options.button)
 				let invert = action.options.invert == 'On' ? true : false
+				let invertPercentage = action.options.invertPercentage
+
+				let flipValues = true;
 
 				let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
 				if (buttonObj) {
+					//if the invert value is the same, don't flip the values
+					if (buttonObj.buttonInverted == invert) {
+						flipValues = false
+					}
+
 					buttonObj.buttonInverted = invert
+					buttonObj.invertPercentage = invertPercentage
 				}
 
 				//if no mapping, create one
 				if (!buttonObj) {
-					self.MAPPING?.buttons.push({ buttonIndex: button, buttonInverted: invert })
+					self.MAPPING?.buttons.push({ buttonIndex: button, buttonInverted: invert, invertPercentage: invertPercentage })
 				}
+
+				//go ahead and invert the values
+				//find the current button values in self.CONTROLLER.buttons[button]
+				let buttonIndex = button
+				let pressed = self.CONTROLLER.buttons[buttonIndex].pressed
+				let touched = self.CONTROLLER.buttons[buttonIndex].touched
+				let val = self.CONTROLLER.buttons[buttonIndex].val
+				let pct = self.CONTROLLER.buttons[buttonIndex].pct
+
+				//invert the values, if buttonInverted has changed
+				if (flipValues) {
+					val = 1 - val
+					pct = 100 - pct
+				}
+				//resend the button event as if it is new so that the values adjust accordingly
+				//self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct)
 
 				//save the mapping to the config table
 				self.config.MAPPING = self.MAPPING
@@ -869,19 +904,29 @@ module.exports = {
 						{ id: 'On', label: 'On' },
 					],
 				},
+				{
+					type: 'checkbox',
+					label: 'Invert Affects Axis Press Percentage',
+					description: 'If enabled, the axis press percentage will be inverted as well, which will affect how the surface behaves. If disabled, only the display value will be affected.',
+					id: 'invertPercentage',
+					default: false,
+					isVisible: (options) => options.invert == 'On',
+				}
 			],
 			callback: async (action) => {
 				let axis = parseInt(action.options.axis)
 				let invert = action.options.invert == 'On' ? true : false
+				let invertPercentage = action.options.invertPercentage
 
 				let axisObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axis)
 				if (axisObj) {
 					axisObj.axisInverted = invert
+					axisObj.invertPercentage = invert
 				}
 
 				//if no mapping, create one
 				if (!axisObj) {
-					self.MAPPING?.axes.push({ axisIndex: axis, axisInverted: invert })
+					self.MAPPING?.axes.push({ axisIndex: axis, axisInverted: invert, invertPercentage: invertPercentage })
 				}
 
 				//save the mapping to the config table
