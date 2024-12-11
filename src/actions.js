@@ -636,11 +636,12 @@ module.exports = {
 				{
 					type: 'checkbox',
 					label: 'Invert Affects Button Press Percentage',
-					description: 'If enabled, the button press percentage will be inverted as well, which will affect how the surface behaves. If disabled, only the display value will be affected.',
+					description:
+						'If enabled, the button press percentage will be inverted as well, which will affect how the surface behaves. If disabled, only the display value will be affected.',
 					id: 'invertPercentage',
 					default: false,
 					isVisible: (options) => options.invert == 'On',
-				}
+				},
 			],
 			callback: async (action) => {
 				let uuid = self.CONTROLLER.uuid
@@ -649,7 +650,7 @@ module.exports = {
 				let invert = action.options.invert == 'On' ? true : false
 				let invertPercentage = action.options.invertPercentage
 
-				let flipValues = true;
+				let flipValues = true
 
 				let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
 				if (buttonObj) {
@@ -664,7 +665,11 @@ module.exports = {
 
 				//if no mapping, create one
 				if (!buttonObj) {
-					self.MAPPING?.buttons.push({ buttonIndex: button, buttonInverted: invert, invertPercentage: invertPercentage })
+					self.MAPPING?.buttons.push({
+						buttonIndex: button,
+						buttonInverted: invert,
+						invertPercentage: invertPercentage,
+					})
 				}
 
 				//go ahead and invert the values
@@ -907,11 +912,12 @@ module.exports = {
 				{
 					type: 'checkbox',
 					label: 'Invert Affects Axis Press Percentage',
-					description: 'If enabled, the axis press percentage will be inverted as well, which will affect how the surface behaves. If disabled, only the display value will be affected.',
+					description:
+						'If enabled, the axis press percentage will be inverted as well, which will affect how the surface behaves. If disabled, only the display value will be affected.',
 					id: 'invertPercentage',
 					default: false,
 					isVisible: (options) => options.invert == 'On',
-				}
+				},
 			],
 			callback: async (action) => {
 				let axis = parseInt(action.options.axis)

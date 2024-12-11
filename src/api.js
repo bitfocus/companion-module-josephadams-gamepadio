@@ -319,7 +319,7 @@ module.exports = {
 							//check to see if the percentage is inverted, otherwise ignore
 							if (buttonObj.invertPercentage) {
 								pct = 100 - pct
-							}							
+							}
 						}
 					}
 
@@ -553,7 +553,7 @@ module.exports = {
 							//check to see if the percentage is inverted, otherwise ignore
 							if (axisObj.invertPercentage) {
 								axisPct = 100 - axisPct
-							}							
+							}
 						}
 					}
 
