@@ -697,6 +697,64 @@ module.exports = {
 			},
 		}
 
+		actions.invertButtonPressToggle = {
+			name: 'Button Settings - Invert Button Press (Toggle)',
+			description: 'Toggle the button press behavior for a specific button on the controller.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Button',
+					id: 'button',
+					default: self.CHOICES_BUTTONS[0].id,
+					choices: self.CHOICES_BUTTONS,
+				},
+			],
+			callback: async (action) => {
+				let uuid = self.CONTROLLER.uuid
+
+				let button = parseInt(action.options.button)
+
+				let flipValues = true
+
+				let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
+				if (buttonObj) {
+					buttonObj.buttonInverted = !buttonObj.buttonInverted || false
+				}
+
+				//if no mapping, create one
+				if (!buttonObj) {
+					self.MAPPING?.buttons.push({
+						buttonIndex: button,
+						buttonInverted: false,
+						invertPercentage: false,
+					})
+				}
+
+				//go ahead and invert the values
+				//find the current button values in self.CONTROLLER.buttons[button]
+				let buttonIndex = button
+				let pressed = self.CONTROLLER.buttons[buttonIndex].pressed
+				let touched = self.CONTROLLER.buttons[buttonIndex].touched
+				let val = self.CONTROLLER.buttons[buttonIndex].val
+				let pct = self.CONTROLLER.buttons[buttonIndex].pct
+
+				//invert the values, if buttonInverted has changed
+				if (flipValues) {
+					val = 1 - val
+					pct = 100 - pct
+				}
+				//resend the button event as if it is new so that the values adjust accordingly
+				//self.processButtonEvent(uuid, buttonIndex, pressed, touched, val, pct)
+
+				//save the mapping to the config table
+				self.config.MAPPING = self.MAPPING
+				self.config.buttonMapping = 'custom'
+				self.saveConfig(self.config)
+				self.checkFeedbacks()
+				self.checkVariables()
+			}
+		}
+
 		actions.setButtonRangeDisplay = {
 			name: 'Button Settings - Set Button Range Display',
 			description: 'Change the display range of the minimum and maximum values of the button.',
@@ -942,6 +1000,41 @@ module.exports = {
 				self.checkFeedbacks()
 				self.checkVariables()
 			},
+		}
+
+		actions.axisInvertToggle = {
+			name: 'Axis - Invert Axis (Toggle)',
+			description: 'Toggle the axis inversion for a specific axis on the controller.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Axis',
+					id: 'axis',
+					default: self.CHOICES_AXES[0].id,
+					choices: self.CHOICES_AXES,
+				},
+			],
+			callback: async (action) => {
+				let axis = parseInt(action.options.axis)
+				
+				let axisObj = self.MAPPING?.axes.find((obj) => obj.axisIndex === axis)
+				if (axisObj) {
+					axisObj.axisInverted = !axisObj.axisInverted || false
+					axisObj.invertPercentage = true
+				}
+
+				//if no mapping, create one
+				if (!axisObj) {
+					self.MAPPING?.axes.push({ axisIndex: axis, axisInverted: false, invertPercentage: false })
+				}
+
+				//save the mapping to the config table
+				self.config.MAPPING = self.MAPPING
+				self.config.buttonMapping = 'custom'
+				self.saveConfig(self.config)
+				self.checkFeedbacks()
+				self.checkVariables()
+			}
 		}
 
 		//choice to lock or unlock
