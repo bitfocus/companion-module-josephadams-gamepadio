@@ -70,6 +70,7 @@ _Configuration Steps:_
   - `Set Axis Value / Percent`: Set the value of a specific axis on the controller. This can be useful if the axis is not behaving as expected or you don't have a controller right now.
   - `Release Axis Value Hold`: Release t he value hold of a specific axis on the controller. Returns value control to the controller.
   - `Load / Save Custom Mapping`: Load from disk or Save to disk your custom mapping.
+  - `Relaunch`: Close the gamepad-io application and re-open it.
 
 ## Feedbacks
 

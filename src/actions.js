@@ -1738,6 +1738,14 @@ module.exports = {
 			},
 		}
 
+		actions.relaunch = {
+			name: 'Other Settings - Relaunch gamepad-io',
+			description: 'Relaunch the gamepad-io application.',
+			callback: async (action) => {
+				self.relaunchApp()
+			},
+		}
+
 		this.setActionDefinitions(actions)
 	},
 }

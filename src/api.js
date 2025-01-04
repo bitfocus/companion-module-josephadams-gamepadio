@@ -1123,6 +1123,14 @@ module.exports = {
 		}
 	},
 
+	relaunchApp: function () {
+		let self = this
+
+		self.log('info', 'Relaunching gamepad-io application.')
+
+		self.sendCommand('relaunch')
+	},
+
 	sendCommand: function (cmd, arg1 = null, arg2 = null) {
 		let self = this
 
