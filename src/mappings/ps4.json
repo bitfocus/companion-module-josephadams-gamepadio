@@ -5,8 +5,8 @@
 		{
 			"buttonIndex": 0,
 			"buttonType": "button",
-			"buttonId": "x",
-			"buttonName": "X",
+			"buttonId": "cross",
+			"buttonName": "Cross",
 			"hapticType": "dual-rumble",
 			"hapticParams": {
 				"duration": 0.1,
