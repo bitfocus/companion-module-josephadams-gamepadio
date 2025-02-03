@@ -342,10 +342,18 @@ module.exports = {
 								clearTimeout(self.DEBOUNCE_TIMER)
 							}
 
+							//check to see if this button has a custom debounce setting and use that, otherwise use the global one from config
+							let debounceNumber = self.config.buttonDebounce
+							if (buttonObj) {
+								if (buttonObj.debounce !== undefined) {
+									debounceNumber = buttonObj.debounce
+								}
+							}
+
 							self.DEBOUNCE_TIMER = setTimeout(function () {
 								self.LAST_BUTTON_PRESSED = -1
 								self.DEBOUNCE_TIMER = undefined
-							}, self.config.buttonDebounce)
+							}, debounceNumber)
 						} else {
 							if (self.config.verbose) {
 								self.log(

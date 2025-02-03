@@ -301,8 +301,57 @@ module.exports = {
 				},
 			}
 
+			actions.setButtonDebounceByButton = {
+				name: 'Surface Settings - Set Button Debounce (By Button)',
+				description:
+					'Change the amount of time in milliseconds that must pass before another press of the same button can be registered again.',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Button',
+						id: 'button',
+						default: self.CHOICES_BUTTONS[0].id,
+						choices: self.CHOICES_BUTTONS,
+					},
+					{
+						type: 'textinput',
+						label: 'Button Debounce (in ms)',
+						id: 'debounce',
+						default: '50',
+						useVariables: true,
+					},
+				],
+				callback: async (action) => {
+					let debounce = await self.parseVariablesInString(action.options.debounce)
+
+					//ensure is number and is positive
+					debounce = parseInt(debounce)
+					if (debounce < 0 || isNaN(debounce)) {
+						debounce = 0
+					}
+
+					let buttonObj = self.MAPPING?.buttons.find((obj) => obj.buttonIndex === button)
+
+					if (buttonObj) {
+						buttonObj.debounce = debounce
+					}
+
+					//if no mapping, create one
+					if (!buttonObj) {
+						self.MAPPING?.buttons.push({ buttonIndex: button, debounce: debounce })
+					}
+
+					//save the mapping to the config table
+					self.config.MAPPING = self.MAPPING
+					self.config.buttonMapping = 'custom'
+					self.saveConfig(self.config)
+					self.checkFeedbacks()
+					self.checkVariables()
+				},
+			}
+
 			actions.setButtonDebounce = {
-				name: 'Surface Settings - Set Button Debounce',
+				name: 'Surface Settings - Set Button Debounce (Global)',
 				description:
 					'Change the amount of time in milliseconds that must pass before another press of the same button can be registered again.',
 				options: [
