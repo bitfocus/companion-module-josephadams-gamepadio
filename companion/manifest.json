@@ -15,10 +15,13 @@
 	],
 	"legacyIds": [],
 	"runtime": {
-		"type": "node18",
+		"type": "node26",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
-		"entrypoint": "../index.js"
+		"entrypoint": "../index.js",
+		"permissions": {
+			"filesystem": true
+		}
 	},
 	"manufacturer": "Joseph Adams",
 	"products": ["gamepad-io"],
